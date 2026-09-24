@@ -1,5 +1,5 @@
 import { analyze } from '../src/theory/analyzer';
-import { getCagedShapes } from '../src/theory/caged';
+import { cagedShapeFor, getCagedShapes } from '../src/theory/caged';
 import { chordById, parseChordSymbol, parseNoteName } from '../src/theory/chords';
 import { inferKey, parseChordPro, progression } from '../src/theory/chordpro';
 import { isComplete, LESSON_BOARDS, LESSON_ORDER, scoreLesson } from '../src/theory/lessons';
@@ -55,6 +55,36 @@ check('Analyzer: F# bass on D chord = D/F#', slash.matches.some((m) => m.root ==
 
 const shapes = getCagedShapes(0, 'maj');
 check('CAGED C: 5 shapes', shapes.length === 5, shapes.map((s) => `${s.shape}@${s.lo}`).join(' '));
+
+// The chord screen labels a position with its shape when it is one. The octave
+// matters: the same E shape sits at the nut and at the twelfth, written with
+// different fret numbers, and both have to be recognised.
+check('CAGED: x32010 is the C shape', cagedShapeFor([null, 3, 2, 0, 1, 0], 0, 'maj')?.shape === 'C');
+check('CAGED: 320003 is the G shape', cagedShapeFor([3, 2, 0, 0, 0, 3], 7, 'maj')?.shape === 'G');
+check(
+  'CAGED: the E shape at the twelfth is still the E shape',
+  cagedShapeFor([12, 14, 14, 13, 12, 12], 4, 'maj')?.shape === 'E',
+);
+check('CAGED: 022000 is the E minor shape', cagedShapeFor([0, 2, 2, 0, 0, 0], 4, 'min')?.shape === 'E');
+// Most playable positions are not one of the five, and none of them may be
+// labelled as one: a wrong shape name is worse than no name. (3,5,5,4,3,3) is
+// the E shape played in G — the same finger pattern as the E shape in C at the
+// eighth fret, but not the same chord, so it is not the E shape of C.
+check('CAGED: the E shape in the wrong place is not a shape', cagedShapeFor([3, 5, 5, 4, 3, 3], 0, 'maj') === null);
+check('CAGED: the E shape of C is at the eighth fret', cagedShapeFor([8, 10, 10, 9, 8, 8], 0, 'maj')?.shape === 'E');
+check(
+  'CAGED: a shape of the wrong quality is not a shape',
+  cagedShapeFor([null, 3, 2, 0, 1, 0], 0, 'min') === null,
+);
+check(
+  'CAGED: the shape found is the one the position really is',
+  generateVoicings(0, chordById('maj')).every((v) => {
+    const found = cagedShapeFor(v.frets, 0, 'maj');
+    if (!found) return true;
+    const same = getCagedShapes(0, 'maj').find((p) => p.shape === found.shape);
+    return !!same && [0, 12, -12].some((o) => v.frets.every((f, i) => (f === null ? same.frets[i] === null : f === (same.frets[i] as number) + o)));
+  }),
+);
 
 const capo = capoOptions(2);
 check('Capo for D includes capo 2 with C shapes', capo.some((o) => o.shapeKey === 0 && o.capo === 2));

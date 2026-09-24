@@ -6,22 +6,20 @@ import {
 } from '@expo-google-fonts/newsreader';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import React, { useEffect, useState } from 'react';
-import { Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Keyboard, StyleSheet, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { Segmented } from './src/components/ui';
-import { CagedScreen } from './src/screens/CagedScreen';
+import { FloatingTabBar } from './src/components/FloatingTabBar';
+import { TabBarContext, TabId } from './src/navigation';
 import { ChordsScreen } from './src/screens/ChordsScreen';
+import { NeckScreen } from './src/screens/NeckScreen';
 import { OnboardingScreen } from './src/screens/OnboardingScreen';
 import { PracticeScreen } from './src/screens/PracticeScreen';
-import { ScalesScreen } from './src/screens/ScalesScreen';
+import { TodayScreen } from './src/screens/TodayScreen';
 import { WorshipScreen } from './src/screens/WorshipScreen';
 import { SettingsProvider, useSettings } from './src/state/settings';
 import { SongsProvider } from './src/songs/store';
-import { Theme, useStyles } from './src/theme';
-
-type Tab = 'worship' | 'scales' | 'chords' | 'caged' | 'practice';
-const TABS: Tab[] = ['worship', 'scales', 'chords', 'caged', 'practice'];
+import { Theme, useStyles, useTheme } from './src/theme';
 
 // The splash stays up until the serif is in memory: otherwise the first frame
 // draws in the system font and the titles visibly jump a moment later.
@@ -54,10 +52,32 @@ export default function App() {
 }
 
 function Shell() {
-  const { settings, ready, t, update } = useSettings();
+  const { settings, ready } = useSettings();
+  const { dark } = useTheme();
   const s = useStyles(makeStyles);
-  const [tab, setTab] = useState<Tab>('worship');
+  const [tab, setTab] = useState<TabId>('today');
   const [welcomed, setWelcomed] = useState(false);
+  const [keyboard, setKeyboard] = useState(false);
+
+  // Ceux qui demandent à cacher la barre. Un compteur et non un drapeau : une
+  // séance ouverte depuis une feuille demande la même chose que la feuille, et
+  // celle qui se ferme ne doit pas rendre la place de l'autre.
+  const holds = useRef(new Set<symbol>());
+  const [held, setHeld] = useState(false);
+  const hold = useCallback((key: symbol, hidden: boolean) => {
+    if (hidden) holds.current.add(key);
+    else holds.current.delete(key);
+    setHeld(holds.current.size > 0);
+  }, []);
+
+  useEffect(() => {
+    const show = Keyboard.addListener('keyboardDidShow', () => setKeyboard(true));
+    const hide = Keyboard.addListener('keyboardDidHide', () => setKeyboard(false));
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
 
   // The welcome questions come before anything else, and only ever once. They wait
   // for the stored settings to be read, so they cannot flash for someone who has
@@ -67,78 +87,23 @@ function Shell() {
   }
 
   return (
-    <SafeAreaView style={s.root}>
-      <StatusBar style={settings.appearance === 'dark' ? 'light' : 'dark'} />
-      <View style={s.header}>
-        <View style={s.headerText}>
-          <Text style={s.title}>{t.appName}</Text>
-          <Text style={s.tagline}>{t.tagline}</Text>
+    <View style={s.root}>
+      <StatusBar style={dark ? 'light' : 'dark'} />
+      {/* Le contexte enveloppe les écrans, pas seulement la barre : c'est un
+          écran — une séance en plein écran — qui demande à la cacher. */}
+      <TabBarContext.Provider value={hold}>
+        <View style={s.body}>
+          {tab === 'today' && <TodayScreen />}
+          {tab === 'worship' && <WorshipScreen />}
+          {tab === 'chords' && <ChordsScreen />}
+          {tab === 'neck' && <NeckScreen />}
+          {tab === 'practice' && <PracticeScreen />}
         </View>
-        <View style={s.lang}>
-          <Segmented<'fr' | 'en'>
-            value={settings.lang}
-            onChange={(lang) => update({ lang })}
-            options={[
-              { value: 'fr', label: 'FR' },
-              { value: 'en', label: 'EN' },
-            ]}
-          />
-        </View>
-      </View>
 
-      <View style={s.body}>
-        {tab === 'worship' && <WorshipScreen />}
-        {tab === 'scales' && <ScalesScreen />}
-        {tab === 'chords' && <ChordsScreen />}
-        {tab === 'caged' && <CagedScreen />}
-        {tab === 'practice' && <PracticeScreen />}
-      </View>
-
-      <View style={s.tabBar}>
-        {TABS.map((id) => (
-          <Pressable
-            key={id}
-            onPress={() => setTab(id)}
-            accessibilityRole="tab"
-            accessibilityState={{ selected: tab === id }}
-            style={s.tabItem}
-          >
-            {/* L'onglet actif se marque par un trait **et** par sa graisse : la
-                couleur seule ne suffit pas à tout le monde. */}
-            <View style={[s.tabMark, tab === id && s.tabMarkActive]} />
-            <Text style={[s.tabText, tab === id && s.tabTextActive]}>{t.tabs[id]}</Text>
-          </Pressable>
-        ))}
-      </View>
-    </SafeAreaView>
+        {!keyboard && !held && <FloatingTabBar tab={tab} onChange={setTab} />}
+      </TabBarContext.Provider>
+    </View>
   );
 }
 
-const makeStyles = ({ c, type, space }: Theme) =>
-  StyleSheet.create({
-    root: { flex: 1, backgroundColor: c.background },
-    header: { flexDirection: 'row', alignItems: 'flex-start', paddingTop: space.sm },
-    headerText: { flex: 1 },
-    title: { ...type.cardTitle, color: c.label, paddingHorizontal: space.lg },
-    tagline: { ...type.caption, color: c.secondary, paddingHorizontal: space.lg, marginTop: 2 },
-    lang: { width: 108, marginRight: space.lg, marginTop: space.xs },
-    body: { flex: 1 },
-    tabBar: {
-      flexDirection: 'row',
-      borderTopWidth: StyleSheet.hairlineWidth,
-      borderTopColor: c.separator,
-      backgroundColor: c.background,
-      paddingBottom: space.xs,
-    },
-    tabItem: {
-      flex: 1,
-      alignItems: 'center',
-      justifyContent: 'center',
-      paddingVertical: space.sm,
-      minHeight: 48,
-    },
-    tabMark: { width: 18, height: 3, borderRadius: 2, marginBottom: 6, backgroundColor: 'transparent' },
-    tabMarkActive: { backgroundColor: c.accent },
-    tabText: { ...type.tab, color: c.secondary },
-    tabTextActive: { color: c.label, fontWeight: '700' },
-  });
+const makeStyles = ({ c }: Theme) => StyleSheet.create({ root: { flex: 1 }, body: { flex: 1, backgroundColor: c.background } });

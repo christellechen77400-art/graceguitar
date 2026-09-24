@@ -151,6 +151,20 @@ export const TAB_BAR = {
   pillHeight: 52,
 } as const;
 
+/**
+ * Le verre de la barre flottante. Ce ne sont pas des couleurs de la palette :
+ * un liseré translucide et une ombre portée se lisent sur les deux fonds et
+ * n'ont pas de version claire et de version sombre.
+ */
+export const GLASS = {
+  borderLight: 'rgba(255,255,255,0.85)',
+  borderDark: 'rgba(255,255,255,0.12)',
+  shadow: '#000000',
+  shadowOpacity: 0.12,
+  /** La surcouche posée sur le flou, à 70 % : `B3` est l'alpha de 70 %. */
+  tintAlpha: 'B3',
+} as const;
+
 export interface Theme {
   c: Palette;
   dark: boolean;

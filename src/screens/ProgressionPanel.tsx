@@ -15,6 +15,9 @@ import { RunScreen } from './Run';
  * success rate as a number on the dot, and the three levels differ by outline as
  * well as by shade — a reader who cannot tell the two fills apart still sees
  * three shapes.
+ *
+ * Pas de titre ici : le panneau se pose sous celui de l'écran qui l'appelle, et
+ * deux titres de suite se disputeraient la même ligne.
  */
 export function ProgressionPanel() {
   const { settings, t } = useSettings();
@@ -43,8 +46,6 @@ export function ProgressionPanel() {
 
   return (
     <View>
-      <Text style={s.title}>{t.progression.title}</Text>
-
       <View style={s.streak}>
         <Text style={s.streakNumber}>{days}</Text>
         <View style={s.streakText}>
@@ -79,7 +80,6 @@ export function ProgressionPanel() {
 
 const makeStyles = ({ c, type, space, radius, size }: Theme) =>
   StyleSheet.create({
-    title: { ...type.greeting, color: c.label, paddingHorizontal: space.lg, marginTop: space.md },
     streak: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: space.lg, marginTop: space.md },
     streakNumber: { ...type.greeting, ...tabularNums, color: c.accent, minWidth: 56 },
     streakText: { flex: 1 },

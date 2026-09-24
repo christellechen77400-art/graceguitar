@@ -33,6 +33,41 @@ export interface CagedPosition {
   hi: number;
 }
 
+/**
+ * Le même doigté, aux mêmes cases.
+ *
+ * L'octave compte : la forme de E est (0,2,2,1,0,0) à vide et (12,14,14,13,12,12)
+ * à la douzième, et les deux sont la même forme pour la même fondamentale. Le
+ * décalage se fait donc par multiples de douze, jamais au-delà : sans ça, un
+ * barré de E en case 3 passerait pour la forme de E d'un accord de do, ce qui
+ * serait simplement faux.
+ */
+function sameShape(a: Fret[], b: Fret[]): boolean {
+  if (a.length !== b.length) return false;
+  return [0, 12, -12].some((octave) =>
+    a.every((fret, i) => {
+      const other = b[i];
+      if (fret === null || other === null) return fret === other;
+      return fret === other + octave;
+    }),
+  );
+}
+
+/**
+ * Which open shape a position is, when it is one.
+ *
+ * Most playable positions are not CAGED shapes — the generator has no idea the
+ * five shapes exist — so this answers "is it one?" rather than forcing a label
+ * onto everything. Null means the position is simply its own thing.
+ */
+export function cagedShapeFor(
+  frets: Fret[],
+  root: number,
+  quality: CagedQuality,
+): CagedPosition | null {
+  return getCagedShapes(root, quality).find((p) => sameShape(p.frets, frets)) ?? null;
+}
+
 export function getCagedShapes(root: number, quality: CagedQuality): CagedPosition[] {
   return (Object.keys(TEMPLATES[quality]) as CagedShape[])
     .map((shape) => {

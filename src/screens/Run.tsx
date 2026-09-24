@@ -11,6 +11,7 @@ import {
   RunSummary,
   summarise,
 } from '../practice/engine';
+import { useHideTabBar } from '../navigation';
 import { useSettings } from '../state/settings';
 import { tabularNums, Theme, useStyles } from '../theme';
 import { chordById, chordName } from '../theory/chords';
@@ -28,6 +29,8 @@ export function RunScreen({ questions, onExit }: { questions: Question[]; onExit
   const { settings, notation, t, update } = useSettings();
   const s = useStyles(makeStyles);
   const { playNote, playStrum } = useNotePlayer();
+  // Une séance occupe l'écran : la barre d'onglets s'efface pendant ce temps.
+  useHideTabBar(true);
   const [run, setRun] = useState(() => ({ questions, attempts: [] as Attempt[], shownAt: Date.now() }));
   const [summary, setSummary] = useState<RunSummary | null>(null);
   const [answer, setAnswer] = useState<number | null>(null);

@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View, ViewStyle } from 'react-native';
+import { registerScroller, TabId, unregisterScroller } from '../../navigation';
 import { SCREEN_BOTTOM, size, Theme, useStyles } from '../../theme';
 
 /**
@@ -9,11 +10,15 @@ import { SCREEN_BOTTOM, size, Theme, useStyles } from '../../theme';
  * Le contenu défile sous la barre et reste visible à travers le verre : c'est
  * pour ça que la marge est une réserve en bas du contenu, pas un padding qui
  * rognerait le défilement.
+ *
+ * `tab` n'est passé que par les écrans qui sont la racine d'un onglet : c'est ce
+ * qui permet à la barre de remonter la page quand on touche l'onglet déjà actif.
  */
 export function Screen({
   title,
   action,
   header,
+  tab,
   scroll = true,
   children,
 }: {
@@ -22,10 +27,20 @@ export function Screen({
   action?: { label: string; onPress: () => void };
   /** Sous le titre, avant le contenu — la semaine de l'accueil, par exemple. */
   header?: React.ReactNode;
+  /** L'onglet dont cet écran est la racine, s'il l'est. */
+  tab?: TabId;
   scroll?: boolean;
   children: React.ReactNode;
 }) {
   const s = useStyles(makeStyles);
+  const ref = useRef<ScrollView>(null);
+
+  useEffect(() => {
+    if (!tab) return;
+    registerScroller(tab, () => ref.current?.scrollTo({ y: 0, animated: true }));
+    return () => unregisterScroller(tab);
+  }, [tab]);
+
   const body = (
     <>
       {title ? <LargeTitle action={action}>{title}</LargeTitle> : null}
@@ -38,6 +53,7 @@ export function Screen({
 
   return (
     <ScrollView
+      ref={ref}
       style={s.root}
       contentContainerStyle={s.content}
       keyboardShouldPersistTaps="handled"
@@ -133,6 +149,7 @@ export function ListRow({
   onPress,
   right,
   destructive,
+  muted,
   last,
   accessibilityLabel,
 }: {
@@ -146,6 +163,8 @@ export function ListRow({
   /** Un contrôle à la place du chevron : un interrupteur, une pastille. */
   right?: React.ReactNode;
   destructive?: boolean;
+  /** Une ligne annoncée mais pas encore utilisable : elle s'efface, sans badge. */
+  muted?: boolean;
   last?: boolean;
   accessibilityLabel?: string;
 }) {
@@ -154,7 +173,7 @@ export function ListRow({
     <View style={[s.row, !last && s.rowSeparator]}>
       {icon !== undefined ? <View style={s.icon}>{icon}</View> : null}
       <View style={s.rowText}>
-        <Text style={[s.rowTitle, destructive && s.rowDestructive]} numberOfLines={1}>
+        <Text style={[s.rowTitle, muted && s.rowMuted, destructive && s.rowDestructive]} numberOfLines={1}>
           {title}
         </Text>
         {subtitle ? <Text style={s.rowSubtitle}>{subtitle}</Text> : null}
@@ -229,6 +248,7 @@ const makeStyles = ({ c, type, space, radius }: Theme) =>
     },
     rowText: { flex: 1 },
     rowTitle: { ...type.body, color: c.label },
+    rowMuted: { color: c.secondary },
     rowDestructive: { color: c.destructive },
     rowSubtitle: { ...type.caption, color: c.secondary, marginTop: 2 },
     rowValue: { ...type.body, color: c.secondary, marginLeft: space.sm },

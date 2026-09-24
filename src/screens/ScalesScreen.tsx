@@ -12,12 +12,19 @@ import {
 } from '../components/ui';
 import { useSettings } from '../state/settings';
 import { Theme, useStyles } from '../theme';
+import { CagedQuality, CagedShape, getCagedShapes } from '../theory/caged';
 import { chordById, ChordId, chordPcs, chordToneLabel, chordName } from '../theory/chords';
 import { FRET_COUNT, INTERVAL_LABELS, mod12, noteName, pcAt, prefersFlats, STRING_COUNT } from '../theory/notes';
 import { SCALES, scaleById, ScaleId } from '../theory/scales';
 
 const LAYER_TYPES: ChordId[] = ['maj', 'min', 'dom7', 'maj7', 'min7', 'sus4', 'dim'];
 
+/**
+ * La gamme et les cinq formes ouvertes se répondent : la gamme dit quelles notes
+ * sont disponibles, la forme dit où la main se pose. L'interrupteur superpose
+ * l'une à l'autre, et la forme est cerclée plutôt que colorée — un anneau se voit
+ * même quand on ne distingue pas deux nuances.
+ */
 export function ScalesScreen() {
   const { settings, notation, t } = useSettings();
   const ui = useTextStyles();
@@ -27,10 +34,27 @@ export function ScalesScreen() {
   const [layerOn, setLayerOn] = useState(false);
   const [layerOffset, setLayerOffset] = useState(0);
   const [layerType, setLayerType] = useState<ChordId>('maj');
+  const [cagedOn, setCagedOn] = useState(false);
+  const [cagedShape, setCagedShape] = useState<CagedShape | 'all'>('all');
 
   const root = settings.keyRoot;
   const flats = prefersFlats(root);
   const scale = scaleById(scaleId);
+  const cagedQuality: CagedQuality = scaleId === 'minor' || scaleId === 'minorPent' ? 'min' : 'maj';
+  const shapes = useMemo(() => getCagedShapes(root, cagedQuality), [root, cagedQuality]);
+
+  /** La case de chaque corde couverte par la forme choisie. */
+  const cagedCells = useMemo(() => {
+    if (!cagedOn) return new Set<string>();
+    const chosen = cagedShape === 'all' ? shapes : shapes.filter((p) => p.shape === cagedShape);
+    const cells = new Set<string>();
+    for (const pos of chosen) {
+      pos.frets.forEach((f, string) => {
+        if (f !== null) cells.add(`${string}-${f}`);
+      });
+    }
+    return cells;
+  }, [cagedOn, cagedShape, shapes]);
 
   useEffect(() => {
     setTargets([]);
@@ -60,11 +84,18 @@ export function ScalesScreen() {
         if (settings.display === 'intervals') {
           label = inChord ? chordToneLabel(chord, chordRoot, pc) : INTERVAL_LABELS[offset];
         }
-        out.push({ string: s, fret: f, kind: pc === root && !inChord ? 'root' : kind, label, ring: isTarget, dim });
+        out.push({
+          string: s,
+          fret: f,
+          kind: pc === root && !inChord ? 'root' : kind,
+          label,
+          ring: isTarget || cagedCells.has(`${s}-${f}`),
+          dim,
+        });
       }
     }
     return out;
-  }, [root, scale, targets, layerOn, layerOffset, layerType, settings.display, notation, flats]);
+  }, [root, scale, targets, layerOn, layerOffset, layerType, settings.display, notation, flats, cagedCells]);
 
   const toggleTarget = (offset: number) =>
     setTargets((prev) => (prev.includes(offset) ? prev.filter((o) => o !== offset) : [...prev, offset]));
@@ -82,6 +113,21 @@ export function ScalesScreen() {
       <View style={s.section}>
         <DisplayPicker />
       </View>
+
+      <Toggle label={t.neck.showCaged} value={cagedOn} onChange={setCagedOn} />
+      {cagedOn && (
+        <ChipRow>
+          <Chip label={t.all} selected={cagedShape === 'all'} onPress={() => setCagedShape('all')} />
+          {shapes.map((p) => (
+            <Chip
+              key={p.shape}
+              label={`${p.shape} (${p.lo})`}
+              selected={cagedShape === p.shape}
+              onPress={() => setCagedShape(p.shape)}
+            />
+          ))}
+        </ChipRow>
+      )}
 
       <View style={s.section}>
         <Fretboard markers={markers} />

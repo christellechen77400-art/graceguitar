@@ -1,14 +1,25 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Modal, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useNotePlayer } from '../audio/useNotePlayer';
 import { Fretboard, Marker } from '../components/Fretboard';
-import { AnalyzerPanel } from './AnalyzerPanel';
-import { Chip, ChipRow, DisplayPicker, KeyPicker, SectionHeader, Toggle, useTextStyles } from '../components/ui';
+import {
+  Chip,
+  ChipRow,
+  DisplayPicker,
+  KeyPicker,
+  Screen,
+  Sheet,
+  SectionHeader,
+  Toggle,
+  useTextStyles,
+} from '../components/ui';
 import { useSettings } from '../state/settings';
 import { Theme, useStyles } from '../theme';
+import { cagedShapeFor, CagedQuality } from '../theory/caged';
 import { CHORD_TYPES, chordById, ChordId, chordName, chordPcs, chordToneLabel } from '../theory/chords';
 import { FRET_COUNT, noteName, pcAt, prefersFlats, STRING_COUNT, voicingToMidi } from '../theory/notes';
 import { generateVoicings, voicingTab } from '../theory/voicings';
+import { AnalyzerPanel } from './AnalyzerPanel';
 
 export function ChordsScreen() {
   const { settings, notation, t } = useSettings();
@@ -28,6 +39,15 @@ export function ChordsScreen() {
   useEffect(() => setIndex(0), [root, typeId]);
 
   const voicing = voicings[index];
+
+  // La forme ouverte dont cette position est la transposition, s'il y en a une.
+  // La plupart des positions jouables n'en sont pas : le générateur ignore que
+  // les cinq formes existent, et lui en coller une serait mentir.
+  const shape = useMemo(() => {
+    if (!voicing) return null;
+    const quality: CagedQuality = chord.id === 'min' || chord.id === 'min7' ? 'min' : 'maj';
+    return cagedShapeFor(voicing.frets, root, quality);
+  }, [voicing, chord, root]);
 
   const labelFor = (pc: number) =>
     settings.display === 'notes'
@@ -63,7 +83,7 @@ export function ChordsScreen() {
   const muted = voicing ? voicing.frets.map((f, s) => (f === null ? s : -1)).filter((s) => s >= 0) : [];
 
   return (
-    <View>
+    <Screen tab="chords" title={t.tabs.chords}>
       <KeyPicker label={t.root} />
       <SectionHeader>{t.chordType}</SectionHeader>
       <ChipRow>
@@ -109,6 +129,16 @@ export function ChordsScreen() {
               {t.position} {index + 1} {t.of} {voicings.length},{' '}
               {voicing.minFret === 0 ? t.openPosition.toLowerCase() : `${t.fret.toLowerCase()} ${voicing.minFret}`}
             </Text>
+            {shape ? (
+              <Text style={s.shape}>
+                {t.neck.cagedShape(
+                  shape.shape,
+                  voicing.minFret === 0
+                    ? t.openPosition.toLowerCase()
+                    : `${t.fret.toLowerCase()} ${voicing.minFret}`,
+                )}
+              </Text>
+            ) : null}
           </View>
           <NavButton
             label={t.next}
@@ -124,35 +154,16 @@ export function ChordsScreen() {
 
       <Toggle label={t.showAllTones} value={showAll} onChange={setShowAll} />
 
-      <Pressable
-        onPress={() => setNaming(true)}
-        accessibilityRole="button"
-        style={s.nameChord}
-      >
+      {/* L'analyseur était un onglet. C'est un outil qu'on sort en regardant des
+          accords, donc il s'ouvre d'ici, dans une feuille. */}
+      <Pressable onPress={() => setNaming(true)} accessibilityRole="button" style={s.nameChord}>
         <Text style={s.nameChordText}>{t.nameChord}</Text>
       </Pressable>
 
-      {/* The analyzer used to be its own tab. It is a tool you reach for while
-          looking at chords, so it now opens from here. */}
-      <Modal
-        visible={naming}
-        animationType="slide"
-        onRequestClose={() => setNaming(false)}
-        presentationStyle="pageSheet"
-      >
-        <SafeAreaView style={s.sheet}>
-          <View style={s.sheetBar}>
-            <Text style={s.sheetTitle}>{t.nameChord}</Text>
-            <Pressable onPress={() => setNaming(false)} accessibilityRole="button" style={s.sheetClose}>
-              <Text style={s.sheetCloseText}>{t.close}</Text>
-            </Pressable>
-          </View>
-          <ScrollView contentContainerStyle={s.sheetContent}>
-            <AnalyzerPanel />
-          </ScrollView>
-        </SafeAreaView>
-      </Modal>
-    </View>
+      <Sheet visible={naming} title={t.nameChord} onClose={() => setNaming(false)} closeLabel={t.close}>
+        <AnalyzerPanel />
+      </Sheet>
+    </Screen>
   );
 }
 
@@ -174,7 +185,6 @@ const makeStyles = ({ c, type, space }: Theme) =>
   StyleSheet.create({
     /** Le bloc d'une section sans titre : la même respiration qu'un `SectionHeader`. */
     section: { marginTop: space.xl },
-    sheetContent: { paddingBottom: space.xl * 2 },
     header: { paddingHorizontal: space.lg, marginTop: space.xl, flexDirection: 'row', alignItems: 'baseline' },
     chordName: { ...type.chordName, color: c.label },
     chordType: { ...type.subhead, color: c.secondary, marginLeft: space.md },
@@ -182,6 +192,7 @@ const makeStyles = ({ c, type, space }: Theme) =>
     navCenter: { flex: 1, alignItems: 'center' },
     tab: { ...type.headline, color: c.label, letterSpacing: 2 },
     meta: { ...type.caption, color: c.secondary, marginTop: 2 },
+    shape: { ...type.caption, color: c.accent, marginTop: 2 },
     navButton: {
       paddingHorizontal: space.md,
       paddingVertical: space.sm,
@@ -212,17 +223,4 @@ const makeStyles = ({ c, type, space }: Theme) =>
       borderColor: c.separator,
     },
     nameChordText: { ...type.headline, color: c.label },
-    sheet: { flex: 1, backgroundColor: c.background },
-    sheetBar: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      paddingHorizontal: space.lg,
-      paddingVertical: space.md,
-      borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: c.separator,
-    },
-    sheetTitle: { ...type.cardTitle, color: c.label },
-    sheetClose: { minHeight: 44, justifyContent: 'center', paddingHorizontal: space.sm },
-    sheetCloseText: { ...type.headline, color: c.accent },
   });

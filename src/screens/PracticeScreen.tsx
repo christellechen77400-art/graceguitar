@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Chip, ChipRow, SectionHeader, Toggle, useTextStyles } from '../components/ui';
+import { Chip, ChipRow, Screen, SectionHeader, Toggle, useTextStyles } from '../components/ui';
 import {
   ExerciseId,
   EXERCISES,
@@ -37,9 +37,7 @@ export function PracticeScreen() {
   const start = (id: ExerciseId) => setRunning(makeRun(id, settings.practice, Date.now() % 100000));
 
   return (
-    <View>
-      <Text style={s.title}>{t.practice.title}</Text>
-
+    <Screen tab="practice" title={t.practice.title}>
       <Pressable
         onPress={() => setProgressOpen((v) => !v)}
         accessibilityRole="button"
@@ -65,7 +63,7 @@ export function PracticeScreen() {
 
       <SettingsSheet />
       <LessonsPanel />
-    </View>
+    </Screen>
   );
 }
 
@@ -145,7 +143,6 @@ function SettingsSheet() {
 
 const makeStyles = ({ c, type, space, size }: Theme) =>
   StyleSheet.create({
-    title: { ...type.greeting, color: c.label, paddingHorizontal: space.lg, marginTop: space.md },
     disclosure: {
       flexDirection: 'row',
       alignItems: 'center',

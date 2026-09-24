@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import { Chip, ChipRow, SectionHeader, useTextStyles } from '../components/ui';
+import { Chip, ChipRow, ListRow, SectionHeader, useTextStyles } from '../components/ui';
 import { Question, setChordRun } from '../practice/engine';
 import { emptySong, setChords, setSongs, Song, SongSet } from '../songs/model';
 import { SET_SOURCES } from '../songs/sources';
@@ -43,7 +43,7 @@ export function SetsPanel() {
 
   return (
     <View>
-      <Text style={s.title}>{t.sets.title}</Text>
+      <SectionHeader>{t.sets.title}</SectionHeader>
       <Text style={ui.hint}>{t.sets.hint}</Text>
 
       {!songs.sets.length && <Text style={ui.hint}>{t.sets.empty}</Text>}
@@ -187,11 +187,17 @@ export function SetsPanel() {
 
       <SectionHeader>{t.sets.sources}</SectionHeader>
       <Text style={ui.hint}>{t.sets.sourceHint}</Text>
-      {SET_SOURCES.filter((source) => source.id !== 'manual').map((source) => (
-        <View key={source.id} style={s.row}>
-          <Text style={[s.rowLabel, !source.available && s.muted]}>{t.sets.source[source.id]}</Text>
-          {!source.available && <Text style={s.badge}>{t.sets.comingSoon}</Text>}
-        </View>
+      {/* Les sources d'équipe sont annoncées, pas proposées : une ligne grisée et
+          son sous-titre disent « prévu » sans promettre un badge coloré que rien
+          ne viendrait remplir. */}
+      {SET_SOURCES.filter((source) => source.id !== 'manual').map((source, i, all) => (
+        <ListRow
+          key={source.id}
+          title={t.sets.source[source.id]}
+          subtitle={source.available ? undefined : t.sets.comingSoon}
+          muted={!source.available}
+          last={i === all.length - 1}
+        />
       ))}
     </View>
   );
@@ -221,8 +227,6 @@ const makeStyles = ({ c, type, space, radius, size }: Theme) =>
       borderBottomColor: c.separator,
     },
     rowLabel: { ...type.body, color: c.label, flex: 1 },
-    muted: { color: c.secondary },
-    badge: { ...type.caption, color: c.secondary, fontWeight: '600' },
     chevron: { ...type.section, color: c.secondary },
     song: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: space.lg, minHeight: size.row },
     songText: { flex: 1 },

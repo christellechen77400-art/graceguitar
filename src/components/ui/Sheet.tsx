@@ -1,6 +1,7 @@
 import React from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View, ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useHideTabBar } from '../../navigation';
 import { useSettings } from '../../state/settings';
 import { radius, size, Theme, useStyles } from '../../theme';
 
@@ -36,6 +37,8 @@ export function Sheet({
   const s = useStyles(makeStyles);
   const { t } = useSettings();
   const insets = useSafeAreaInsets();
+  // Une feuille couvre l'écran : la barre d'onglets n'a rien à faire dessous.
+  useHideTabBar(visible);
   const body = <View style={[s.content, contentStyle]}>{children}</View>;
 
   return (

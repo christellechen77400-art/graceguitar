@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Fretboard, Marker } from '../components/Fretboard';
-import { KeyPicker, SectionHeader, useTextStyles } from '../components/ui';
+import { KeyPicker, Screen, SectionHeader, useTextStyles } from '../components/ui';
 import { useSettings } from '../state/settings';
 import { NECK, Theme, useStyles } from '../theme';
 import { chordById, chordName, chordToneLabel } from '../theory/chords';
@@ -46,7 +46,9 @@ export function WorshipScreen() {
   const progression = PROGRESSIONS[progIndex];
 
   return (
-    <View>
+    <Screen tab="worship" title={t.tabs.worship}>
+      <SetsPanel />
+
       <KeyPicker label={t.key} highlight={COMMON_WORSHIP_KEYS} />
       <Text style={[ui.hint, s.keyHint]}>{t.worship.commonKeyHint}</Text>
 
@@ -93,9 +95,7 @@ export function WorshipScreen() {
           <Text style={s.rowNames}>{progression.map((x) => nameInKey(o.shapeKey, x)).join('  ')}</Text>
         </View>
       ))}
-
-      <SetsPanel />
-    </View>
+    </Screen>
   );
 }
 
