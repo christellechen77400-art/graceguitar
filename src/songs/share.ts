@@ -290,6 +290,7 @@ export function adoptShared(
       date: shared.d,
       serviceName: shared.n ?? shared.f,
       source,
+      from: shared.f,
       songs: entries,
     },
   };

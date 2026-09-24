@@ -339,6 +339,43 @@ export const en: Dict = {
     weekDone: 'day practised',
     space: 'My space',
     sound: 'Sound',
+    streakDays: (n: number) => (n === 1 ? '1 day' : `${n} days`),
+    questionCount: (n: number) => (n === 1 ? '1 question' : `${n} questions`),
+    suggested: (capo: number) => (capo === 0 ? 'No capo' : `Capo ${capo} suggested`),
+    sundayHint: 'Tap a song to show it large.',
+    heatLegend: 'Filled: known · ringed: half · empty: never practised',
+    challengeBest: (seconds: number) => `Best time: ${seconds.toFixed(1)} s`,
+    challengeNone: 'No time on this challenge yet.',
+    reminder: {
+      title: 'Sunday’s set is still empty',
+      body: 'Five minutes is enough to add the songs.',
+    },
+    notions: {
+      third: {
+        name: 'The third',
+        hint: 'It decides major from minor: four frets above the root for a major, three for a minor.',
+      },
+      fifth: {
+        name: 'The fifth',
+        hint: 'It never moves. Seven frets above the root, on the same string: the surest landmark on the neck.',
+      },
+      octave: {
+        name: 'The octave',
+        hint: 'The same note, two strings down and two frets up. Once you see it, you can find any note anywhere.',
+      },
+      barre: {
+        name: 'The barre',
+        hint: 'One finger, six strings. The whole shape moves: it is the same chord, higher, with nothing new to learn.',
+      },
+      capo: {
+        name: 'The capo',
+        hint: 'It lifts the whole neck. The shapes stay the same, the key changes: that is why a capo beats learning another barre chord.',
+      },
+      nashville: {
+        name: 'Numbering',
+        hint: '1, 4, 5, 6m: the degrees of a key, the same in every key. Transposing means changing key without relearning the chart.',
+      },
+    },
   },
   space: {
     title: 'My space',

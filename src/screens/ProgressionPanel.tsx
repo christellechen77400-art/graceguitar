@@ -1,8 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Fretboard, Marker, MarkerKind } from '../components/Fretboard';
+import { Fretboard } from '../components/Fretboard';
 import { SectionHeader, useTextStyles } from '../components/ui';
-import { dailyRun, heat, Question, streak } from '../practice/engine';
+import { dailyRun, heat, heatMarkers, Question, streak } from '../practice/engine';
 import { today } from '../songs/model';
 import { useSettings } from '../state/settings';
 import { tabularNums, Theme, useStyles } from '../theme';
@@ -29,18 +29,7 @@ export function ProgressionPanel() {
   const practised = cells.filter((c) => c.attempts > 0);
   const days = streak(settings.practiceDays, today());
 
-  // Trois niveaux, trois silhouettes : accent cerclé, blanc cerclé, blanc. Les
-  // tons `tone` et `chord` ont la même couleur depuis la nouvelle charte, donc
-  // sans cet anneau les deux niveaux du bas seraient indiscernables.
-  const markers: Marker[] = cells.map((c) => {
-    if (c.rate === null) return { string: c.string, fret: c.fret, kind: 'ghost' as MarkerKind };
-    const pct = Math.round(c.rate * 100);
-    if (c.rate >= 0.8) return { string: c.string, fret: c.fret, kind: 'root' as MarkerKind, label: `${pct}` };
-    if (c.rate >= 0.4) {
-      return { string: c.string, fret: c.fret, kind: 'tone' as MarkerKind, ring: true, label: `${pct}` };
-    }
-    return { string: c.string, fret: c.fret, kind: 'chord' as MarkerKind, label: `${pct}` };
-  });
+  const markers = heatMarkers(cells);
 
   if (run) return <RunScreen questions={run} onExit={() => setRun(null)} />;
 

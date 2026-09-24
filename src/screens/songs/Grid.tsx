@@ -19,11 +19,14 @@ export function Grid({
   songKey,
   mode,
   view,
+  large,
 }: {
   sections: Section[];
   songKey: number;
   mode: Mode;
   view: 'chords' | 'nashville';
+  /** En grand : la grille se lit sur un pupitre, à bout de bras. */
+  large?: boolean;
 }) {
   const { t, notation } = useSettings();
   const s = useStyles(makeStyles);
@@ -32,13 +35,13 @@ export function Grid({
     <View>
       {sections.map((section, index) => (
         <View key={`${section.name}-${index}`} style={s.section}>
-          <Text style={s.sectionName}>{sectionLabel(section.name, t)}</Text>
+          <Text style={large ? s.sectionNameLarge : s.sectionName}>{sectionLabel(section.name, t)}</Text>
           <View style={s.bars}>
             {section.bars.map((bar, i) => {
               const chord = nashvilleToChord(bar, songKey, mode);
               return (
-                <View key={`${bar}-${i}`} style={s.bar}>
-                  <Text style={[s.chord, !chord && s.unreadable]}>
+                <View key={`${bar}-${i}`} style={large ? [s.bar, s.barLarge] : s.bar}>
+                  <Text style={[large ? s.chordLarge : s.chord, !chord && s.unreadable]}>
                     {chord ? (view === 'chords' ? nashvilleLabel(chord, songKey, mode, notation) : bar) : bar}
                   </Text>
                   {chord && view === 'chords' ? <Text style={s.degree}>{bar}</Text> : null}
@@ -72,6 +75,9 @@ const makeStyles = ({ c, type, space }: Theme) =>
       marginBottom: space.sm,
       alignItems: 'center',
     },
+    sectionNameLarge: { ...type.subhead, color: c.secondary, textTransform: 'uppercase', letterSpacing: 1 },
+    barLarge: { minWidth: 84, paddingVertical: space.sm },
+    chordLarge: { ...type.section, color: c.label },
     chord: { ...type.body, color: c.label },
     degree: { ...type.caption, color: c.secondary, marginTop: 2 },
     unreadable: { color: c.secondary, textDecorationLine: 'line-through' },

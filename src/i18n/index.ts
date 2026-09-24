@@ -20,6 +20,18 @@ export function formatDay(iso: string, t: Dict): string {
 }
 
 /**
+ * La même date, en tête de ligne.
+ *
+ * Une date de set se lit au milieu d'une phrase — « dimanche 27 septembre » — mais
+ * celle de l'accueil est seule sur sa ligne, et une ligne commence par une
+ * majuscule. La règle est la même dans les deux langues, donc elle s'écrit ici.
+ */
+export function formatDayTitle(iso: string, t: Dict): string {
+  const text = formatDay(iso, t);
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+/**
  * Le nom d'une section : « verse » devient « Couplet », et un nom libre reste tel
  * quel. Une grille importée peut nommer ses sections dans n'importe quelle langue ;
  * seul ce que l'app propose elle-même se traduit.

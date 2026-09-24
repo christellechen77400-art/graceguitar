@@ -2,7 +2,7 @@ import { analyze } from '../src/theory/analyzer';
 import { cagedShapeFor, getCagedShapes } from '../src/theory/caged';
 import { chordById, parseChordSymbol, parseNoteName } from '../src/theory/chords';
 import { inferKey, parseChordPro, progression, sectionBars } from '../src/songs/chordpro';
-import { isComplete, LESSON_BOARDS, LESSON_ORDER, scoreLesson } from '../src/theory/lessons';
+import { boardMarkers, isComplete, LESSON_BOARDS, LESSON_ORDER, scoreLesson } from '../src/theory/lessons';
 import { lessonsEn } from '../src/theory/lessons.en';
 import { lessonsFr } from '../src/theory/lessons.fr';
 import {
@@ -17,26 +17,43 @@ import {
 } from '../src/theory/nashville';
 import { fretToMidi, OPEN_MIDI, voicingToMidi } from '../src/theory/notes';
 import {
+  Attempt,
   cells,
   dailyRun,
   exerciseById,
+  ExerciseId,
   DEFAULT_PRACTICE,
   heat,
+  heatMarkers,
+  HeatCell,
   makeQuestion,
   makeRun,
   mulberry32,
+  neckTotals,
   prioritise,
+  ProgressMap,
+  Question,
   questionMidi,
   recordAttempt,
+  rememberRun,
   retryMissed,
+  RunRecord,
+  RUN_HISTORY,
+  runRecord,
   setChordRun,
   streak,
   summarise,
   voiceChord,
 } from '../src/practice/engine';
 import { levelFrom, MAX_SCORE, ONBOARDING, practiceFor } from '../src/practice/onboarding';
-import { dailySession, rotationFor, CHORDS_EAR, THEORY } from '../src/practice/daily';
-import { homeSections, isSundayMode } from '../src/home/order';
+import { dailySession, rotationFor, CHORDS_EAR, DAILY_QUESTIONS, THEORY } from '../src/practice/daily';
+import { homeSections, isSundayMode, SUNDAY_QUESTIONS } from '../src/home/order';
+import { dayPart, greetingName, MAX_GREETING_NAME, seedOf, startOfWeek, weekDays, weekStrip } from '../src/home/day';
+import { weekMinutes } from '../src/home/stats';
+import { bestTime, challengeOfWeek, CHALLENGE_EXERCISES, CHALLENGE_QUESTIONS } from '../src/home/challenge';
+import { notionOfDay, NOTIONS } from '../src/home/notion';
+import { nextThursdayEvening, REMINDER_HOUR, shouldRemind, THURSDAY } from '../src/home/reminder';
+import { originLabel, setSourceLabel, songLine } from '../src/songs/labels';
 import { fold, nextSet, recentSongs, searchSongs, sundayNeedsSongs } from '../src/songs/library';
 import {
   adoptShared,
@@ -47,10 +64,10 @@ import {
   shareSet,
   SHARE_PREFIX,
 } from '../src/songs/share';
-import { emptySong, nextSunday, nextSundays, setChords, setSongs, Song, WorshipSet } from '../src/songs/model';
+import { emptySong, nextSunday, nextSundays, setChords, setSongs, Song, SongSource, WorshipSet } from '../src/songs/model';
 import { en } from '../src/i18n/en';
 import { fr } from '../src/i18n/fr';
-import { formatDay, sectionLabel } from '../src/i18n';
+import { formatDay, formatDayTitle, sectionLabel } from '../src/i18n';
 import { songFromChordPro } from '../src/songs/import';
 import { migrateLibrary } from '../src/songs/migrate';
 import { SET_SOURCES } from '../src/songs/sources';
@@ -875,6 +892,246 @@ check(
   adopted.songs.find((s) => s.title === 'Gloire à Dieu')?.sections?.[0].bars.join(' ') === '1 5 6m 4',
 );
 check('A received set names who sent it', adopted.set.serviceName === 'Culte du soir');
+
+// ---------------------------------------------------------- l'accueil du jour
+
+check('The morning starts at five', dayPart(5) === 'morning');
+check('Eleven is still morning', dayPart(11) === 'morning');
+check('Noon turns to afternoon', dayPart(12) === 'afternoon');
+check('Half past five is still afternoon', dayPart(17) === 'afternoon');
+check('Six in the evening is the evening', dayPart(18) === 'evening');
+check('Two in the morning is still the evening', dayPart(2) === 'evening');
+check('A greeting trims the name', greetingName('  Christelle  ') === 'Christelle');
+check('A name of nothing is said alone', greetingName('   ') === '');
+check(
+  'A name of fourteen letters still fits',
+  greetingName('A'.repeat(MAX_GREETING_NAME)) === 'A'.repeat(MAX_GREETING_NAME),
+);
+check('One letter more and it is left out', greetingName('A'.repeat(MAX_GREETING_NAME + 1)) === '');
+check('The same text gives the same seed', seedOf('2026-09-24') === seedOf('2026-09-24'));
+check('Another text gives another seed', seedOf('2026-09-24') !== seedOf('2026-09-25'));
+check('A seed is a whole number, and positive', Number.isInteger(seedOf('x')) && seedOf('x') >= 0);
+
+check('The week starts on Monday', startOfWeek('2026-09-24') === '2026-09-21', startOfWeek('2026-09-24'));
+check('A Monday is its own week', startOfWeek('2026-09-21') === '2026-09-21');
+check('A Sunday belongs to the week before', startOfWeek('2026-09-27') === '2026-09-21');
+check('A week crosses the month', startOfWeek('2026-10-01') === '2026-09-28', startOfWeek('2026-10-01'));
+check('A week has seven days', weekDays('2026-09-24').length === 7);
+check(
+  'The week runs Monday to Sunday',
+  weekDays('2026-09-24')[0] === '2026-09-21' && weekDays('2026-09-24')[6] === '2026-09-27',
+);
+const strip = weekStrip(['2026-09-21', '2026-09-24'], '2026-09-24');
+check('The strip marks the days practised', strip.filter((d) => d.done).length === 2);
+check('The strip marks today once', strip.filter((d) => d.today).length === 1 && strip[3].today);
+// A week cut off at today would not show that there is still room before Sunday.
+check('The days to come are in the strip too', strip[6].iso === '2026-09-27' && !strip[6].done);
+check('A strip with nothing practised is still a week', weekStrip([], '2026-09-24').length === 7);
+
+const runAt = (day: string, totalMs: number, exercises: ExerciseId[] = ['nameNote']): RunRecord => ({
+  day,
+  exercises,
+  questions: 10,
+  correct: 8,
+  totalMs,
+});
+const week: RunRecord[] = [
+  runAt('2026-09-20', 600000), // dimanche : la semaine d'avant
+  runAt('2026-09-21', 120000),
+  runAt('2026-09-24', 180000),
+  runAt('2026-09-25', 600000), // demain
+];
+check('The week counts from Monday', weekMinutes(week, '2026-09-24') === 5, String(weekMinutes(week, '2026-09-24')));
+check('Nothing practised is no minute', weekMinutes([], '2026-09-24') === 0);
+// A date in the future inside the history would be a bug elsewhere: counting it
+// here would only hide it.
+check('A run dated tomorrow is not counted', weekMinutes([runAt('2026-09-25', 600000)], '2026-09-24') === 0);
+
+const challenge = challengeOfWeek('2026-09-24');
+check('The challenge is one exercise', CHALLENGE_EXERCISES.includes(challenge.exercise));
+check('The challenge is ten questions', challenge.questions === CHALLENGE_QUESTIONS);
+check(
+  'The challenge lasts the whole week',
+  challengeOfWeek('2026-09-21').exercise === challengeOfWeek('2026-09-27').exercise,
+);
+check(
+  'Another week brings another challenge',
+  new Set(
+    ['2026-09-07', '2026-09-14', '2026-09-21', '2026-09-28', '2026-10-05', '2026-10-12'].map(
+      (monday) => challengeOfWeek(monday).exercise,
+    ),
+  ).size > 1,
+);
+// One question is not a time to beat, it is a time to read.
+check(
+  'An exercise of a single question is never the challenge',
+  !CHALLENGE_EXERCISES.includes('allOfNote') && !CHALLENGE_EXERCISES.includes('chordTone'),
+);
+
+const fast = runAt('2026-09-26', 42000, [challenge.exercise]);
+const slow = runAt('2026-09-27', 55000, [challenge.exercise]);
+check('No run on the challenge is no time', bestTime([], challenge) === null);
+check('The best time is the fastest', bestTime([slow, fast], challenge) === 42000, String(bestTime([slow, fast], challenge)));
+check(
+  'A session of several exercises does not count',
+  bestTime([runAt('2026-09-26', 20000, ['nameNote', challenge.exercise])], challenge) === null,
+);
+check(
+  'A session stopped short does not count',
+  bestTime([{ ...fast, questions: CHALLENGE_QUESTIONS - 1 }], challenge) === null,
+);
+check('A run of another exercise does not count', bestTime([fast, runAt('2026-09-26', 1000, ['allOfNote'])], challenge) === 42000);
+
+check('The notion of the day comes from the list', NOTIONS.includes(notionOfDay('2026-09-24')));
+check('The same day gives the same notion', notionOfDay('2026-09-24').id === notionOfDay('2026-09-24').id);
+check('A notion always opens a lesson', NOTIONS.every((n) => LESSON_ORDER.includes(n.lesson)));
+// Drawn from the day, so a year of days goes through the whole list.
+const year: string[] = [];
+for (let i = 0; i < 366; i++) {
+  const date = new Date('2026-01-01T00:00:00.000Z');
+  date.setUTCDate(date.getUTCDate() + i);
+  year.push(date.toISOString().slice(0, 10));
+}
+check('Every notion has its day in the year', new Set(year.map(notionOfDay)).size === NOTIONS.length);
+check('Every notion is written in French', NOTIONS.every((n) => fr.today.notions[n.id].hint.length > 40));
+check('Every notion is written in English', NOTIONS.every((n) => en.today.notions[n.id].hint.length > 40));
+
+check('Thursday with no songs reminds', shouldRemind(THURSDAY, false, true));
+check('A set already filled does not remind', !shouldRemind(THURSDAY, true, true));
+check('Another day does not remind', !shouldRemind(3, false, true) && !shouldRemind(5, false, true));
+check('Reminders turned off do not remind', !shouldRemind(THURSDAY, false, false));
+const tuesday = nextThursdayEvening(new Date('2026-09-22T09:00:00'));
+check('The reminder falls on a Thursday', tuesday.getDay() === THURSDAY, String(tuesday.getDay()));
+check(
+  'The reminder is at seven in the evening',
+  tuesday.getHours() === REMINDER_HOUR && tuesday.getMinutes() === 0,
+);
+check('It comes this week while Thursday is ahead', tuesday.getDate() === 24, String(tuesday.getDate()));
+// Thursday evening, once seven has struck, is already the day it was meant for.
+const thursdayNight = nextThursdayEvening(new Date('2026-09-24T20:00:00'));
+check(
+  'Once Thursday evening has passed it waits a week',
+  thursdayNight.getDate() === 1 && thursdayNight.getMonth() === 9,
+  String(thursdayNight),
+);
+
+const qFind = (pc: number): Question => ({ exercise: 'findNote', string: 0, pc });
+const qCapo: Question = { exercise: 'capoExpress', key: 0, shapeKey: 0, capo: 0 };
+const qAll: Question = { exercise: 'allOfNote', pc: 0, targets: [] };
+const attempt = (correct: boolean, ms: number): Attempt => ({ correct, ms });
+const questions: Question[] = [qFind(0), qCapo, qFind(4), qAll];
+const attempts: Attempt[] = [attempt(true, 1000), attempt(false, 2000), attempt(true, 3000), attempt(true, 4000)];
+const record = runRecord(questions, attempts, '2026-09-24');
+check('A run keeps its day', record.day === '2026-09-24');
+check('A run counts its questions', record.questions === 4);
+check('A run counts what was right', record.correct === 3);
+check('A run adds up its time', record.totalMs === 10000);
+check('A run names each exercise once', record.exercises.join(',') === 'findNote,capoExpress,allOfNote', record.exercises.join(','));
+// A session left in the middle counts what was answered, not what was planned.
+const abandoned = runRecord(questions, attempts.slice(0, 2), '2026-09-24');
+check('A question left unanswered is not counted', abandoned.questions === 2 && abandoned.totalMs === 3000);
+check('Nor does it name its exercise', abandoned.exercises.join(',') === 'findNote,capoExpress');
+check('A run of nothing is a run of nothing', runRecord([], [], '2026-09-24').exercises.length === 0);
+
+let history: RunRecord[] = [];
+for (let i = 0; i < RUN_HISTORY + 5; i++) history = rememberRun(history, runAt('2026-09-24', i));
+check('The history is capped', history.length === RUN_HISTORY, String(history.length));
+check('It is the oldest run that is forgotten', history[0].totalMs === 5, String(history[0].totalMs));
+check('The newest run is kept', history[history.length - 1].totalMs === RUN_HISTORY + 4);
+check('Adding a run leaves the others alone', rememberRun([], history[0])[0].totalMs === history[0].totalMs);
+
+const progressMap: ProgressMap = {
+  '0:3': { attempts: 4, correct: 4, totalMs: 4000 },
+  '1:5': { attempts: 6, correct: 3, totalMs: 12000 },
+  '2:0': { attempts: 0, correct: 0, totalMs: 0 },
+};
+const totals = neckTotals(progressMap);
+check('The totals count the positions worked', totals.seen === 2, String(totals.seen));
+check('The totals count every attempt', totals.attempts === 10);
+check('The totals count every right answer', totals.correct === 7);
+check('Accuracy is the share that was right', Math.round(totals.accuracy * 100) === 70);
+check('The mean time is per note', totals.meanMs === 1600, String(totals.meanMs));
+const noNeck = neckTotals({});
+check(
+  'Nothing practised leaves the figures at zero',
+  noNeck.seen === 0 && noNeck.attempts === 0 && noNeck.accuracy === 0 && noNeck.meanMs === 0,
+);
+
+// Three levels that differ by outline as much as by shade, so that a reader who
+// cannot tell the two fills apart still counts three shapes.
+const heatCells: HeatCell[] = [
+  { string: 0, fret: 3, rate: 1, attempts: 4 },
+  { string: 0, fret: 5, rate: 0.8, attempts: 4 },
+  { string: 0, fret: 7, rate: 0.5, attempts: 4 },
+  { string: 1, fret: 0, rate: 0.4, attempts: 4 },
+  { string: 1, fret: 3, rate: 0.25, attempts: 4 },
+  { string: 2, fret: 7, rate: null, attempts: 0 },
+];
+const marks = heatMarkers(heatCells);
+check('A known position is filled, with its rate', marks[0].kind === 'root' && marks[0].label === '100');
+check('Eight in ten is already known', marks[1].kind === 'root' && marks[1].label === '80');
+check('A half-known position is ringed', marks[2].kind === 'tone' && marks[2].ring === true && marks[2].label === '50');
+check('Four in ten is already half known', marks[3].kind === 'tone' && marks[3].ring === true && marks[3].label === '40');
+check('A weak position is a third shape', marks[4].kind === 'chord' && !marks[4].ring && marks[4].label === '25');
+check('A position never played is a ghost, and says no number', marks[5].kind === 'ghost' && marks[5].label === undefined);
+check('One marker per position, where it was played', marks.length === heatCells.length && marks.every((m, i) => m.string === heatCells[i].string && m.fret === heatCells[i].fret));
+
+// Every C on the board, which is one per string and twice on the A and B
+// strings: the neck shows more than an octave, so a note comes round again.
+const cRoots = boardMarkers({ root: 0, chord: 'maj' })
+  .filter((m) => m.kind === 'root')
+  .map((m) => `${m.string}:${m.fret}`)
+  .sort()
+  .join(' ');
+check('A chord board marks the root on every C of the neck', cRoots === '0:8 1:15 1:3 2:10 3:5 4:1 4:13 5:8', cRoots);
+check(
+  'A chord board names its chord tones',
+  boardMarkers({ root: 0, chord: 'maj' })
+    .filter((m) => m.kind === 'chord')
+    .every((m) => typeof m.label === 'string' && m.label.length > 0),
+);
+check(
+  'A chord board marks nothing but the chord',
+  boardMarkers({ root: 0, chord: 'maj' }).every((m) => m.kind === 'root' || m.kind === 'chord'),
+);
+const scaleBoard = boardMarkers({ root: 0, scale: 'major' });
+check('A scale board marks the root separately', scaleBoard.some((m) => m.kind === 'root'));
+check(
+  'A scale board covers the six other degrees once each',
+  new Set(scaleBoard.filter((m) => m.kind === 'tone').map((m) => m.label)).size === 6,
+);
+check('A board asked for nothing marks nothing', boardMarkers({ root: 0 }).length === 0);
+
+check('A day title opens with a capital', formatDayTitle('2026-09-27', fr) === 'Dimanche 27 septembre', formatDayTitle('2026-09-27', fr));
+check('The English day title is capitalised too', formatDayTitle('2026-09-27', en) === 'Sunday 27 September');
+
+check('A typed set says so', setSourceLabel({ ...soon }, fr) === fr.worship.origin.manual);
+check('A set from GCC says so', setSourceLabel({ ...soon, source: 'gcc' }, fr) === fr.worship.origin.gcc);
+check(
+  'A received set names who sent it',
+  setSourceLabel({ ...soon, source: 'shared', from: 'Christelle' }, fr) === 'Reçu de Christelle',
+);
+check(
+  'A received set with no name stays generic',
+  setSourceLabel({ ...soon, source: 'shared' }, fr) === fr.worship.origin.shared,
+);
+check(
+  'A source we do not know reads as typed in',
+  setSourceLabel({ ...soon, source: 'nimporte' as SongSource }, fr) === fr.worship.origin.manual,
+);
+// The source says `chordpro`, which is the format; the screen says what was done.
+check('An import reads as imported', originLabel('chordpro', fr) === fr.worship.origin.imported);
+check('A hand-typed song reads as typed in', originLabel('manual', fr) === fr.worship.origin.manual);
+check('A song line gives the key', songLine(7, 0, 'anglo', fr) === `Tonalité G`);
+check('A song line adds the capo when there is one', songLine(7, 2, 'anglo', fr) === 'Tonalité G · Capo 2');
+check('A key of B flat is written with a flat', songLine(10, 0, 'anglo', fr).includes('B♭'));
+
+// Sunday is played rather than worked: the same three exercises, in shorter form.
+check('Sunday asks for fewer questions', SUNDAY_QUESTIONS < DAILY_QUESTIONS);
+const sunday = dailySession(DEFAULT_PRACTICE, {}, 20260927, SUNDAY_QUESTIONS);
+check('A Sunday session still has three exercises', sunday.exercises.length === 3);
+check('A Sunday session is eighteen questions', sunday.questionCount === 18, String(sunday.questionCount));
+check('Every Sunday exercise is shorter', sunday.exercises.every((e) => e.questions.length === SUNDAY_QUESTIONS));
 
 function report() {
   if (failures) {

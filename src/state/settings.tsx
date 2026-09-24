@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { dictionaries, Dict, Lang } from '../i18n';
-import { DEFAULT_PRACTICE, PracticeSettings, ProgressMap } from '../practice/engine';
+import { DEFAULT_PRACTICE, PracticeSettings, ProgressMap, RunRecord } from '../practice/engine';
 import { Level } from '../practice/onboarding';
 import { Notation } from '../theory/notes';
 import { DEFAULT_CAPO_SHAPES } from '../theory/worship';
@@ -30,6 +30,10 @@ export interface Settings {
   progress: ProgressMap;
   /** Days practised, as YYYY-MM-DD, for the streak. */
   practiceDays: string[];
+  /** The last runs, newest last: the only place a duration is written down. */
+  runs: RunRecord[];
+  /** Thursday-evening reminder when Sunday's set is still empty. Off by default. */
+  reminders: boolean;
   /** False until the welcome questions have been answered or skipped. */
   onboarded: boolean;
   /** Starting level from those questions, 1 to 3. */
@@ -49,6 +53,8 @@ const DEFAULTS: Settings = {
   practice: DEFAULT_PRACTICE,
   progress: {},
   practiceDays: [],
+  runs: [],
+  reminders: false,
   onboarded: false,
   level: 2,
 };
@@ -69,6 +75,8 @@ function hydrate(raw: string): Settings {
     practice: { ...DEFAULTS.practice, ...(stored.practice ?? {}) },
     progress: stored.progress ?? {},
     practiceDays: stored.practiceDays ?? [],
+    runs: stored.runs ?? [],
+    reminders: stored.reminders ?? false,
     // A blob written before the welcome questions existed has no flag; treating it
     // as answered keeps the questions from appearing to someone already using the app.
     onboarded: stored.onboarded ?? true,

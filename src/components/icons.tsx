@@ -103,3 +103,29 @@ export function TargetIcon(props: IconProps) {
     </Frame>
   );
 }
+
+/**
+ * La série : la flamme.
+ *
+ * Elle marque les jours d'affilée. Le nombre est écrit à côté, donc la flamme
+ * n'est pas seule à porter l'information.
+ */
+export function FlameIcon(props: IconProps) {
+  const p = stroke(props.color);
+  return (
+    <Frame {...props}>
+      <Path d="M12 2.5c3.4 3.6 5.5 6.3 5.5 9.4a5.5 5.5 0 0 1-11 0c0-1.6.7-3 1.9-4.4.3 1 .9 1.8 1.7 2.2-.4-2.6-.2-4.6.9-6.2.3-.4.6-.7 1-1z" {...p} />
+    </Frame>
+  );
+}
+
+/** Mon espace : la silhouette. */
+export function PersonIcon(props: IconProps) {
+  const p = stroke(props.color);
+  return (
+    <Frame {...props}>
+      <Circle cx={12} cy={8.5} r={3.8} {...p} />
+      <Path d="M4.8 20.5c0-3.6 3.2-6 7.2-6s7.2 2.4 7.2 6" {...p} />
+    </Frame>
+  );
+}

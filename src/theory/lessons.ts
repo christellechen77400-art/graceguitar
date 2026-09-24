@@ -6,8 +6,10 @@
  * two can never drift apart. A lesson is a page of text, one fretboard to look at
  * while reading it, and three questions.
  */
-import { ChordId } from './chords';
-import { ScaleId } from './scales';
+import type { Marker, MarkerKind } from '../components/Fretboard';
+import { chordById, chordPcs, ChordId, chordToneLabel } from './chords';
+import { FRET_COUNT, INTERVAL_LABELS, mod12, pcAt, STRING_COUNT } from './notes';
+import { ScaleId, scaleById } from './scales';
 
 export type LessonId =
   | 'strings'
@@ -92,6 +94,40 @@ export const LESSON_BOARDS: Record<LessonId, LessonBoard> = {
 
 /** Questions per lesson. */
 export const QUESTIONS_PER_LESSON = 3;
+
+/**
+ * Ce qu'un schéma montre : toutes les positions, pas une seule.
+ *
+ * Sur une leçon qui explique où vit une note, un seul point serait un mensonge —
+ * et sur un accord, c'est l'accord entier qu'on veut voir. Chaque point porte son
+ * degré : c'est ce qu'on lit sur un schéma d'accord, et une leçon qui montre un
+ * manche muet ne dit rien de plus qu'une photo.
+ *
+ * Pur, et hors de l'écran : c'est le même calcul pour la leçon et pour la notion
+ * du jour, qui montre le même genre de schéma.
+ */
+export function boardMarkers(board: LessonBoard): Marker[] {
+  const chord = board.chord ? chordById(board.chord) : null;
+  const pcs = board.scale
+    ? scaleById(board.scale).intervals.map((i) => mod12(board.root + i))
+    : chord
+      ? chordPcs(board.root, chord)
+      : [];
+  if (!pcs.length) return [];
+
+  const out: Marker[] = [];
+  for (let string = 0; string < STRING_COUNT; string++) {
+    for (let fret = 0; fret <= FRET_COUNT; fret++) {
+      const pc = pcAt(string, fret);
+      if (!pcs.includes(pc)) continue;
+      const kind: MarkerKind = pc === board.root ? 'root' : chord ? 'chord' : 'tone';
+      const label =
+        pc === board.root ? undefined : chord ? chordToneLabel(chord, board.root, pc) : INTERVAL_LABELS[mod12(pc - board.root)];
+      out.push({ string, fret, kind, label });
+    }
+  }
+  return out;
+}
 
 /**
  * A lesson is well formed when it asks three questions and every one of them has

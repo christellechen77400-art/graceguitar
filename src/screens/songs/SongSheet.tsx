@@ -11,8 +11,8 @@ import {
   Stepper,
   useTextStyles,
 } from '../../components/ui';
-import { Dict } from '../../i18n';
-import { Song, SongSource } from '../../songs/model';
+import { originLabel } from '../../songs/labels';
+import { Song } from '../../songs/model';
 import { useSettings } from '../../state/settings';
 import { Theme, useStyles } from '../../theme';
 import { nashvilleLabel } from '../../theory/nashville';
@@ -141,16 +141,6 @@ export function SongSheet({
       {song.lyrics ? <Text style={ui.hint}>{t.worship.lyricsNote}</Text> : null}
     </Sheet>
   );
-}
-
-/**
- * D'où vient le chant, en clair.
- *
- * La source dit `chordpro` — le format — et l'écran dit « Importé », ce qui est ce
- * que la personne a fait. C'est la seule des quatre dont les deux mots diffèrent.
- */
-function originLabel(source: SongSource, t: Dict): string {
-  return source === 'chordpro' ? t.worship.origin.imported : t.worship.origin[source];
 }
 
 /** « Sans capo » plutôt qu'un zéro : le capo zéro n'est pas un capo. */

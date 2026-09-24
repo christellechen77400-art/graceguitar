@@ -69,28 +69,30 @@ export function rotationFor(seed: number): [ExerciseId, ExerciseId] {
  * La séance du jour : trois exercices, dix questions chacun.
  *
  * Les réglages du joueur gardent la main sur les cordes, la zone et les
- * altérations ; seul le nombre de questions est fixé à dix, parce que c'est la
- * forme de la séance et non une préférence. Un exercice dont les réglages ne
- * permettent aucune question est laissé de côté plutôt que montré vide : une
- * séance de deux exercices vaut mieux qu'un bloc qui ne s'ouvre pas.
+ * altérations ; seul le nombre de questions est fixé, parce que c'est la forme de
+ * la séance et non une préférence — dix en temps ordinaire, six le dimanche, où
+ * l'on joue plus qu'on ne travaille. Un exercice dont les réglages ne permettent
+ * aucune question est laissé de côté plutôt que montré vide : une séance de deux
+ * exercices vaut mieux qu'un bloc qui ne s'ouvre pas.
  */
 export function dailySession(
   settings: PracticeSettings,
   progress: ProgressMap,
   seed: number,
+  count = DAILY_QUESTIONS,
 ): DailySession {
-  const shaped: PracticeSettings = { ...settings, questionCount: DAILY_QUESTIONS };
+  const shaped: PracticeSettings = { ...settings, questionCount: count };
   const neck: DailyExercise = {
     id: 'nameNote',
     section: exerciseById('nameNote').section,
-    questions: dailyRun(shaped, progress, seed, DAILY_QUESTIONS),
+    questions: dailyRun(shaped, progress, seed, count),
   };
 
   const [a, b] = rotationFor(seed);
   const others = [a, b].map((id, index): DailyExercise => ({
     id,
     section: exerciseById(id).section,
-    questions: makeRun(id, shaped, seed + (index + 1) * 977).slice(0, DAILY_QUESTIONS),
+    questions: makeRun(id, shaped, seed + (index + 1) * 977).slice(0, count),
   }));
 
   const exercises = [neck, ...others].filter((e) => e.questions.length > 0);

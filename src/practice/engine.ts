@@ -4,6 +4,7 @@
  * Everything is driven by a seeded generator so a run can be replayed exactly,
  * which is what makes the tests below meaningful rather than flaky.
  */
+import type { Marker, MarkerKind } from '../components/Fretboard';
 import { ChordId, chordById, chordPcs } from '../theory/chords';
 import { fretToMidi, mod12, OPEN_MIDI, pcAt, STRING_COUNT } from '../theory/notes';
 import { capoOptions, DIATONIC } from '../theory/worship';
@@ -315,6 +316,79 @@ export function retryMissed(questions: Question[], missed: number[]): Question[]
   return missed.filter((i) => i >= 0 && i < questions.length).map((i) => questions[i]);
 }
 
+// ------------------------------------------------------------------- history
+
+/**
+ * Ce qu'une séance terminée laisse derrière elle.
+ *
+ * Le compte-rendu garde le temps total, parce que c'est la seule chose qui ne se
+ * retrouve pas dans la carte de progression : une position sait combien de fois on
+ * l'a touchée, jamais combien de temps on y a mis. Les minutes de la semaine et le
+ * meilleur temps d'un défi se lisent donc ici.
+ */
+export interface RunRecord {
+  /** YYYY-MM-DD. */
+  day: string;
+  /** Les exercices posés, sans répétition, dans l'ordre d'apparition. */
+  exercises: ExerciseId[];
+  questions: number;
+  correct: number;
+  totalMs: number;
+}
+
+export function runRecord(questions: Question[], attempts: Attempt[], day: string): RunRecord {
+  const exercises = questions
+    .slice(0, attempts.length)
+    .map((q) => q.exercise)
+    .filter((id, i, all) => all.indexOf(id) === i);
+  return {
+    day,
+    exercises,
+    questions: attempts.length,
+    correct: attempts.filter((a) => a.correct).length,
+    totalMs: attempts.reduce((sum, a) => sum + a.ms, 0),
+  };
+}
+
+/** Le nombre de séances gardées : de quoi couvrir deux mois sans grossir sans fin. */
+export const RUN_HISTORY = 60;
+
+/** Ajoute une séance à l'historique, et oublie les plus anciennes. */
+export function rememberRun(history: RunRecord[], record: RunRecord): RunRecord[] {
+  return [...history, record].slice(-RUN_HISTORY);
+}
+
+export interface NeckTotals {
+  /** Positions distinctes déjà travaillées. */
+  seen: number;
+  attempts: number;
+  correct: number;
+  accuracy: number;
+  /** Temps moyen par note, en millisecondes. */
+  meanMs: number;
+}
+
+/**
+ * Ce que la carte de progression dit, en chiffres.
+ *
+ * Les trois chiffres portent sur le manche et rien d'autre : « temps moyen par
+ * note » veut dire par note nommée, pas par question d'oreille. C'est la même
+ * matière que la carte de chaleur, lue en une ligne.
+ */
+export function neckTotals(progress: ProgressMap): NeckTotals {
+  const stats = Object.values(progress);
+  const attempts = stats.reduce((sum, s) => sum + s.attempts, 0);
+  const correct = stats.reduce((sum, s) => sum + s.correct, 0);
+  const totalMs = stats.reduce((sum, s) => sum + s.totalMs, 0);
+  return {
+    seen: stats.filter((s) => s.attempts > 0).length,
+    attempts,
+    correct,
+    accuracy: attempts ? correct / attempts : 0,
+    meanMs: attempts ? Math.round(totalMs / attempts) : 0,
+  };
+}
+
 // --------------------------------------------------------- spaced repetition
 
 export interface CellStat {
@@ -418,6 +492,26 @@ export function heat(s: PracticeSettings, progress: ProgressMap): HeatCell[] {
   return cells(s).map((c) => {
     const stat = progress[cellKey(c.string, c.fret)];
     return { string: c.string, fret: c.fret, rate: mastery(stat), attempts: stat?.attempts ?? 0 };
+  });
+}
+
+/**
+ * Les pastilles de la carte de chaleur.
+ *
+ * Trois niveaux, trois silhouettes : accent cerclé, blanc cerclé, blanc. Les tons
+ * `tone` et `chord` ont la même couleur dans la charte, donc sans cet anneau les
+ * deux niveaux du bas seraient indiscernables — et une carte de chaleur qui ne se
+ * lit qu'en couleur ne se lit pas pour tout le monde.
+ */
+export function heatMarkers(cells: HeatCell[]): Marker[] {
+  return cells.map((cell) => {
+    if (cell.rate === null) return { string: cell.string, fret: cell.fret, kind: 'ghost' as MarkerKind };
+    const pct = `${Math.round(cell.rate * 100)}`;
+    if (cell.rate >= 0.8) return { string: cell.string, fret: cell.fret, kind: 'root' as MarkerKind, label: pct };
+    if (cell.rate >= 0.4) {
+      return { string: cell.string, fret: cell.fret, kind: 'tone' as MarkerKind, ring: true, label: pct };
+    }
+    return { string: cell.string, fret: cell.fret, kind: 'chord' as MarkerKind, label: pct };
   });
 }
 

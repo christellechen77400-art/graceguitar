@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Fretboard, Marker, MarkerKind } from '../components/Fretboard';
+import { Fretboard } from '../components/Fretboard';
 import {
   Chip,
   ChipRow,
@@ -11,12 +11,9 @@ import {
 } from '../components/ui';
 import { useSettings } from '../state/settings';
 import { Theme, useStyles } from '../theme';
-import { chordById, chordPcs, chordToneLabel } from '../theory/chords';
-import { LessonContent, LessonId, LESSON_BOARDS, LESSON_ORDER, scoreLesson } from '../theory/lessons';
+import { boardMarkers, LessonContent, LessonId, LESSON_BOARDS, LESSON_ORDER, scoreLesson } from '../theory/lessons';
 import { lessonsEn } from '../theory/lessons.en';
 import { lessonsFr } from '../theory/lessons.fr';
-import { FRET_COUNT, INTERVAL_LABELS, mod12, noteName, pcAt, prefersFlats, STRING_COUNT } from '../theory/notes';
-import { scaleById } from '../theory/scales';
 
 /**
  * The theory course: a list, then one lesson at a time.
@@ -24,14 +21,26 @@ import { scaleById } from '../theory/scales';
  * Reading and answering are one screen rather than two, because the fretboard is
  * what the text is about and the questions are about the fretboard.
  */
-export function LessonsPanel() {
+export function LessonsPanel({
+  initial = null,
+  onExit,
+}: {
+  /** La leçon à ouvrir d'emblée — la notion du jour arrive avec la sienne. */
+  initial?: LessonId | null;
+  /**
+   * Où revenir en fermant. Sans lui, on revient à la liste : c'est ce qu'on veut
+   * dans l'onglet Exercices, où la liste est l'écran. L'accueil, lui, n'a pas de
+   * liste à montrer et revient chez lui.
+   */
+  onExit?: () => void;
+} = {}) {
   const { settings, t } = useSettings();
   const s = useStyles(makeStyles);
-  const [open, setOpen] = useState<LessonId | null>(null);
+  const [open, setOpen] = useState<LessonId | null>(initial);
   const lessons = settings.lang === 'en' ? lessonsEn : lessonsFr;
 
   if (open) {
-    return <LessonView id={open} content={lessons[open]} onExit={() => setOpen(null)} />;
+    return <LessonView id={open} content={lessons[open]} onExit={onExit ?? (() => setOpen(null))} />;
   }
 
   return (
@@ -59,40 +68,15 @@ function LessonView({
   content: LessonContent;
   onExit: () => void;
 }) {
-  const { settings, notation, t } = useSettings();
+  const { notation, t } = useSettings();
   const s = useStyles(makeStyles);
   const ui = useTextStyles();
   const [answers, setAnswers] = useState<(number | null)[]>(() => content.questions.map(() => null));
   const [reading, setReading] = useState(true);
   const board = LESSON_BOARDS[id];
-  const flats = prefersFlats(board.root);
   const total = LESSON_ORDER.length;
   const position = LESSON_ORDER.indexOf(id) + 1;
-
-  const markers = useMemo(() => {
-    const out: Marker[] = [];
-    const chord = board.chord ? chordById(board.chord) : null;
-    const pcs = board.scale
-      ? scaleById(board.scale).intervals.map((i) => mod12(board.root + i))
-      : chord
-        ? chordPcs(board.root, chord)
-        : [];
-    if (!pcs.length) return out;
-    // Every position of the root gets a dot: on a lesson about where a note lives,
-    // one dot would be a lie.
-    for (let string = 0; string < STRING_COUNT; string++) {
-      for (let fret = 0; fret <= FRET_COUNT; fret++) {
-        const pc = pcAt(string, fret);
-        if (!pcs.includes(pc)) continue;
-        const offset = mod12(pc - board.root);
-        const kind: MarkerKind = pc === board.root ? 'root' : chord ? 'chord' : 'tone';
-        const label =
-          pc === board.root ? undefined : chord ? chordToneLabel(chord, board.root, pc) : INTERVAL_LABELS[offset];
-        out.push({ string, fret, kind, label });
-      }
-    }
-    return out;
-  }, [board, settings.display]);
+  const markers = useMemo(() => boardMarkers(board), [board]);
 
   const right = scoreLesson(content, answers);
   const answeredAll = answers.every((a) => a !== null);

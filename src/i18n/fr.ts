@@ -337,6 +337,43 @@ export const fr = {
     weekDone: 'jour pratiqué',
     space: 'Mon espace',
     sound: 'Son',
+    streakDays: (n: number) => (n === 1 ? '1 jour' : `${n} jours`),
+    questionCount: (n: number) => (n === 1 ? '1 question' : `${n} questions`),
+    suggested: (capo: number) => (capo === 0 ? 'Sans capo' : `Capo ${capo} conseillé`),
+    sundayHint: 'Touche un chant pour l’afficher en grand.',
+    heatLegend: 'Plein : maîtrisé · anneau : à moitié · vide : jamais travaillé',
+    challengeBest: (seconds: number) => `Meilleur temps : ${seconds.toFixed(1)} s`,
+    challengeNone: 'Pas encore de temps sur ce défi.',
+    reminder: {
+      title: 'Le set de dimanche est encore vide',
+      body: 'Cinq minutes suffisent pour y ajouter les chants.',
+    },
+    notions: {
+      third: {
+        name: 'La tierce',
+        hint: 'C’est elle qui décide entre majeur et mineur : 4 cases au-dessus de la fondamentale pour un majeur, 3 pour un mineur.',
+      },
+      fifth: {
+        name: 'La quinte',
+        hint: 'Elle ne bouge jamais. Sept cases au-dessus de la fondamentale, sur la même corde : le repère le plus sûr du manche.',
+      },
+      octave: {
+        name: 'L’octave',
+        hint: 'Même note, deux cordes plus bas et deux cases plus haut. Une fois qu’on la voit, on retrouve n’importe quelle note partout.',
+      },
+      barre: {
+        name: 'Le barré',
+        hint: 'Un doigt, six cordes. La forme se déplace entière : c’est le même accord, plus haut, sans rien réapprendre.',
+      },
+      capo: {
+        name: 'Le capo',
+        hint: 'Il monte tout le manche. Les formes restent les mêmes, la tonalité change : c’est pour ça qu’on conseille un capo plutôt qu’un nouveau barré.',
+      },
+      nashville: {
+        name: 'Le chiffrage',
+        hint: '1, 4, 5, 6m : les degrés d’une tonalité, les mêmes dans toutes. Transposer, c’est changer de tonalité sans réapprendre la grille.',
+      },
+    },
   },
   space: {
     title: 'Mon espace',

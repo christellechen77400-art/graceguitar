@@ -7,7 +7,9 @@ import {
   Attempt,
   Question,
   questionMidi,
+  rememberRun,
   retryMissed,
+  runRecord,
   RunSummary,
   summarise,
 } from '../practice/engine';
@@ -91,7 +93,9 @@ export function RunScreen({ questions, onExit }: { questions: Question[]; onExit
     const days = settings.practiceDays.includes(today)
       ? settings.practiceDays
       : [...settings.practiceDays, today];
-    update({ progress, practiceDays: days });
+    // Le compte-rendu de la séance, gardé pour les minutes de la semaine et le
+    // meilleur temps du défi : rien d'autre ne retient une durée.
+    update({ progress, practiceDays: days, runs: rememberRun(settings.runs, runRecord(asked, attempts, today)) });
     setSummary(summarise(attempts));
   };
 

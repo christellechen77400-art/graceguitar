@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Chip, ChipRow, PrimaryButton, SecondaryButton, SectionHeader, Sheet, useTextStyles } from '../../components/ui';
-import { Dict, formatDay } from '../../i18n';
+import { formatDay } from '../../i18n';
+import { songLine } from '../../songs/labels';
 import { nextSundays, setSongs, Song, WorshipSet } from '../../songs/model';
 import { useSongs } from '../../songs/store';
 import { useSettings } from '../../state/settings';
 import { Theme, useStyles, useTheme } from '../../theme';
-import { noteName, prefersFlats } from '../../theory/notes';
 import { SongPicker } from './SongPicker';
 
 /**
@@ -152,13 +152,6 @@ export function SetSheet({
       />
     </>
   );
-}
-
-/** « Tonalité Sol · capo 2 », ou la tonalité seule quand il n'y a pas de capo. */
-function songLine(key: number, capo: number, notation: 'anglo' | 'latin', t: Dict): string {
-  const parts = [`${t.key} ${noteName(key, notation, prefersFlats(key))}`];
-  if (capo) parts.push(`${t.sets.capo} ${capo}`);
-  return parts.join(' · ');
 }
 
 const makeStyles = ({ c, type, space, radius, size }: Theme) =>

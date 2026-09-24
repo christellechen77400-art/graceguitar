@@ -65,6 +65,14 @@ export interface WorshipSet {
   songs: SetSong[];
   /** Id du SetSource d'origine ; `manual` pour un set écrit à la main. */
   source: string;
+  /**
+   * Le prénom de qui l'a envoyé, pour un set reçu.
+   *
+   * Gardé à part du nom du culte : « Reçu de Christelle » est ce qu'on veut lire
+   * sur l'accueil, et l'écrire dans `serviceName` le ferait passer pour le nom du
+   * culte partout ailleurs.
+   */
+  from?: string;
 }
 
 export const MANUAL_SOURCE = 'manual';
