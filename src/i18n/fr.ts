@@ -147,10 +147,19 @@ export const fr = {
   },
   onboarding: {
     title: 'Bienvenue',
-    intro: 'Cinq questions pour commencer au bon endroit. Tu peux passer.',
+    intro: 'Quelques questions pour commencer au bon endroit. Tu peux passer.',
     skip: 'Passer',
     next: 'Suivante',
     finish: 'Terminer',
+    name: {
+      question: 'Comment t’appelles-tu ?',
+      placeholder: 'Ton prénom',
+      hint: 'Il sert à te saluer, et part avec ton profil si tu crées un compte.',
+    },
+    capo: {
+      question: 'Quelles formes d’accords préfères-tu jouer avec un capo ?',
+      hint: 'On s’en sert pour te conseiller le capo le plus bas.',
+    },
     levelTitle: 'Ton point de départ',
     levels: {
       1: 'On commence court : une corde, les cinq premières cases, les notes naturelles.',

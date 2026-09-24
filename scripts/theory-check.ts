@@ -29,7 +29,7 @@ import { emptySong, nextSunday, setChords, setSongs, songFromChordPro, songKey }
 import { SET_SOURCES } from '../src/songs/sources';
 import { migrateLegacyKeys, migrationPlan, STORAGE_KEYS } from '../src/state/storage';
 import { voicingTab, generateVoicings } from '../src/theory/voicings';
-import { capoOptions } from '../src/theory/worship';
+import { CAPO_SHAPES, capoOptions, DEFAULT_CAPO_SHAPES } from '../src/theory/worship';
 
 let failures = 0;
 const check = (label: string, ok: boolean, detail = '') => {
@@ -468,6 +468,20 @@ check(
 );
 check('The middle answer lands in the middle', levelFrom(ONBOARDING.map(() => 1)) === 2);
 check('A perfect score is the maximum', MAX_SCORE === 10, String(MAX_SCORE));
+check(
+  'The shapes offered for the capo are G, C, D, A, E',
+  CAPO_SHAPES.join(',') === '7,0,2,9,4',
+  CAPO_SHAPES.join(','),
+);
+check(
+  'The shapes ticked by default are offered ones',
+  DEFAULT_CAPO_SHAPES.every((shape) => CAPO_SHAPES.includes(shape)),
+  DEFAULT_CAPO_SHAPES.join(','),
+);
+check(
+  'The shapes ticked by default are a strict subset',
+  DEFAULT_CAPO_SHAPES.length < CAPO_SHAPES.length,
+);
 check(
   'Level 1 opens on one string and the naturals',
   practiceFor(1).strings.length === 1 && !practiceFor(1).accidentals,

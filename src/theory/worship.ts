@@ -33,7 +33,14 @@ export const PROGRESSIONS: number[][] = [
 export const COMMON_WORSHIP_KEYS = [0, 2, 4, 7, 9, 10, 11];
 
 /** Open-chord families guitarists like to play with a capo: G, C, D, A, E. */
-const CAPO_SHAPE_KEYS = [7, 0, 2, 9, 4];
+export const CAPO_SHAPES = [7, 0, 2, 9, 4];
+
+/**
+ * The three shapes most worship songs are actually played in, and so the ones
+ * the welcome question ticks by default. A player who prefers something else
+ * says so; the rest get a sensible capo without having to think about it.
+ */
+export const DEFAULT_CAPO_SHAPES = [7, 0, 2];
 
 export interface CapoOption {
   shapeKey: number;
@@ -41,7 +48,7 @@ export interface CapoOption {
 }
 
 export function capoOptions(key: number, maxCapo = 7): CapoOption[] {
-  return CAPO_SHAPE_KEYS.map((shapeKey) => ({ shapeKey, capo: mod12(key - shapeKey) }))
+  return CAPO_SHAPES.map((shapeKey) => ({ shapeKey, capo: mod12(key - shapeKey) }))
     .filter((o) => o.capo <= maxCapo)
     .sort((a, b) => a.capo - b.capo);
 }

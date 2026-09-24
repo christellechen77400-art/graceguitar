@@ -5,6 +5,9 @@
  * a beginner should not open on the whole neck with the accidentals on. Nothing
  * here is a test — every question can be skipped, and the answers only choose
  * defaults that the settings screen can change afterwards.
+ *
+ * The welcome asks two more things — a first name and the shapes the player likes
+ * under a capo — but they say nothing about the level, so they are not here.
  */
 import { PracticeSettings } from './engine';
 

@@ -4,6 +4,7 @@ import { dictionaries, Dict, Lang } from '../i18n';
 import { DEFAULT_PRACTICE, PracticeSettings, ProgressMap } from '../practice/engine';
 import { Level } from '../practice/onboarding';
 import { Notation } from '../theory/notes';
+import { DEFAULT_CAPO_SHAPES } from '../theory/worship';
 // Type-only on purpose: `theme.ts` imports `useSettings` from here, and a value
 // import in this direction would close the cycle.
 import type { Appearance } from '../theme';
@@ -44,7 +45,7 @@ const DEFAULTS: Settings = {
   appearance: 'auto',
   firstName: '',
   // G, C and D: the three shapes most worship songs are actually played in.
-  preferredShapes: [7, 0, 2],
+  preferredShapes: DEFAULT_CAPO_SHAPES,
   practice: DEFAULT_PRACTICE,
   progress: {},
   practiceDays: [],

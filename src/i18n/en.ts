@@ -149,10 +149,19 @@ export const en: Dict = {
   },
   onboarding: {
     title: 'Welcome',
-    intro: 'Five questions to start in the right place. You can skip.',
+    intro: 'A few questions to start in the right place. You can skip.',
     skip: 'Skip',
     next: 'Next',
     finish: 'Finish',
+    name: {
+      question: "What's your first name?",
+      placeholder: 'Your first name',
+      hint: 'It is used to greet you, and goes with your profile if you make an account.',
+    },
+    capo: {
+      question: 'Which chord shapes do you like playing with a capo?',
+      hint: 'We use them to suggest the lowest capo.',
+    },
     levelTitle: 'Your starting point',
     levels: {
       1: 'We start small: one string, the first five frets, the natural notes.',
