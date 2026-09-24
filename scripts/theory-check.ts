@@ -1,10 +1,11 @@
 import { analyze } from '../src/theory/analyzer';
 import { cagedShapeFor, getCagedShapes } from '../src/theory/caged';
 import { chordById, parseChordSymbol, parseNoteName } from '../src/theory/chords';
-import { inferKey, parseChordPro, progression } from '../src/theory/chordpro';
+import { inferKey, parseChordPro, progression, sectionBars } from '../src/songs/chordpro';
 import { isComplete, LESSON_BOARDS, LESSON_ORDER, scoreLesson } from '../src/theory/lessons';
 import { lessonsEn } from '../src/theory/lessons.en';
 import { lessonsFr } from '../src/theory/lessons.fr';
+import { chordToNashville, NashvilleChord, nashvilleLabel, nashvilleToChord } from '../src/theory/nashville';
 import { fretToMidi, OPEN_MIDI, voicingToMidi } from '../src/theory/notes';
 import {
   cells,
@@ -25,11 +26,13 @@ import {
   voiceChord,
 } from '../src/practice/engine';
 import { levelFrom, MAX_SCORE, ONBOARDING, practiceFor } from '../src/practice/onboarding';
-import { emptySong, nextSunday, setChords, setSongs, songFromChordPro, songKey } from '../src/songs/model';
+import { emptySong, nextSunday, setChords, setSongs, WorshipSet } from '../src/songs/model';
+import { songFromChordPro } from '../src/songs/import';
+import { migrateLibrary } from '../src/songs/migrate';
 import { SET_SOURCES } from '../src/songs/sources';
 import { migrateLegacyKeys, migrationPlan, STORAGE_KEYS } from '../src/state/storage';
 import { voicingTab, generateVoicings } from '../src/theory/voicings';
-import { CAPO_SHAPES, capoOptions, DEFAULT_CAPO_SHAPES } from '../src/theory/worship';
+import { CAPO_SHAPES, capoOptions, DEFAULT_CAPO_SHAPES, probableChords, suggestCapo } from '../src/theory/worship';
 
 let failures = 0;
 const check = (label: string, ok: boolean, detail = '') => {
@@ -343,23 +346,113 @@ check('A song with no chords has no key', inferKey(parseChordPro('paroles sans a
 
 const song = songFromChordPro(CHART, 'Repli');
 check('A song takes its title from the chart', song.title === 'Chant témoin');
-check('A song keeps its source verbatim', song.chordPro === CHART);
+check('A song keeps its own key', song.defaultKey === 7, String(song.defaultKey));
 check('A song falls back to the given title', songFromChordPro('[G]x', 'Repli').title === 'Repli');
-check('A song reads its own key', songKey(song) === 7);
-check('A song with no key gets one from its chords', songKey(emptySong('x')) === null);
-const guessed = songFromChordPro('[G]a [D]b [Em]c [C]d', 'x');
-check('A song with no declared key infers one', songKey(guessed) === 7, String(songKey(guessed)));
+check(
+  'A song stores its grid as Nashville numbers',
+  song.sections?.[0].bars.join(' ') === '1 5 6m 4',
+  song.sections?.[0].bars.join(' '),
+);
+check('A song keeps each section apart', song.sections?.length === 2 && song.sections[1].name === 'chorus');
+check('A song keeps its words on the device', (song.lyrics ?? '').includes('Première ligne ici'));
+check('A chart with no chord is only a key', songFromChordPro('paroles sans accord', 'x').sections === undefined);
+check('A minor chart reads as minor', songFromChordPro('[Am]a [Dm]b [Em]c [Am]d', 'x').mode === 'minor');
+// Am F C G is the vi-IV-I-V of C, not a song in A minor: the key inferred has to
+// match the chords the chart actually uses.
+check(
+  'A major chart reads as major',
+  songFromChordPro('[Am]a [F]b [C]c [G]d', 'x').defaultKey === 0 && song.mode === 'major',
+);
+check('A song with no declared key infers one', songFromChordPro('[G]a [D]b [Em]c [C]d', 'x').defaultKey === 7);
 
-const band = { id: 's1', title: 'Dimanche', date: '2026-09-27', songIds: [song.id], source: 'manual' };
+// A song with no grid still has a key, which is what the sheet shows.
+check('A song typed in by hand has no grid', emptySong('x', 0).sections === undefined);
+
+const entry = { songId: song.id, key: 7, capo: 2, order: 0 };
+const band: WorshipSet = { id: 's1', date: '2026-09-27', serviceName: 'Dimanche', songs: [entry], source: 'manual' };
 check('A set resolves its songs', setSongs(band, [song]).length === 1);
-check('A set skips a deleted song', setSongs({ ...band, songIds: ['gone'] }, [song]).length === 0);
+check('A set skips a deleted song', setSongs({ ...band, songs: [{ ...entry, songId: 'gone' }] }, [song]).length === 0);
 check('A set gathers its chords in playing order', setChords(band, [song]).length === 6);
+// The set plays the song in the key of the day, not the one it was written in.
+check('A set plays a song in its own key', setChords({ ...band, songs: [{ ...entry, key: 2 }] }, [song])[0].root === 2);
 check(
   'Next Sunday is a Sunday',
   new Date(`${nextSunday(new Date('2026-09-24T00:00:00Z'))}T00:00:00Z`).getUTCDay() === 0,
   nextSunday(new Date('2026-09-24T00:00:00Z')),
 );
 check('Sunday counts as the next Sunday', nextSunday(new Date('2026-09-27T00:00:00Z')) === '2026-09-27');
+
+// ------------------------------------------------------------------ Nashville
+
+const inG = (degree: string) => nashvilleToChord(degree, 7, 'major');
+/** A degree read back as written, or a readable stand-in when it is unreadable. */
+const chalk = (chord: NashvilleChord | null) => (chord ? chordToNashville(chord, 7) : 'unreadable');
+check('1 in G is G', inG('1')?.root === 7 && inG('1')?.chord === 'maj');
+check('4 in G is C', inG('4')?.root === 0 && inG('4')?.chord === 'maj');
+check('6m in G is Em', inG('6m')?.root === 4 && inG('6m')?.chord === 'min');
+check('2m7 in G is Am7', inG('2m7')?.root === 9 && inG('2m7')?.chord === 'min7');
+check('7° in G is F#dim', inG('7°')?.root === 6 && inG('7°')?.chord === 'dim');
+check('5/7 in G is D over F#', inG('5/7')?.root === 2 && inG('5/7')?.bass === 6);
+check('A minor degree uses the minor scale', nashvilleToChord('1m', 9, 'minor')?.root === 9);
+check('A nonsense degree reads as nothing', inG('9') === null && inG('x') === null);
+
+check('D/F# in G is 5/7', chordToNashville({ root: 2, chord: 'maj', bass: 6 }, 7) === '5/7');
+check('Em in G is 6m', chordToNashville({ root: 4, chord: 'min', bass: null }, 7) === '6m');
+check('A chord out of the key takes a flat', chordToNashville({ root: 5, chord: 'maj', bass: null }, 7) === '♭7');
+check('A chord reads back as itself', chalk(inG('5/7')) === '5/7', chalk(inG('5/7')));
+check(
+  'The label spells the bass too',
+  nashvilleLabel({ root: 2, chord: 'maj', bass: 6 }, 7, 'major', 'anglo') === 'D/F♯',
+  nashvilleLabel({ root: 2, chord: 'maj', bass: 6 }, 7, 'major', 'anglo'),
+);
+check(
+  'A flat key spells its chords with flats',
+  nashvilleLabel({ root: 10, chord: 'maj', bass: null }, 10, 'major', 'anglo') === 'B♭',
+  nashvilleLabel({ root: 10, chord: 'maj', bass: null }, 10, 'major', 'anglo'),
+);
+
+check('A section reads as Nashville bars', sectionBars(parsed.sections[0], 7, 'major').join(' ') === '1 5 6m 4');
+
+check(
+  'The probable chords come in worship order',
+  probableChords(7).map((c) => c.nashville).join(' ') === '1 4 5 6m 2m 3m',
+  probableChords(7).map((c) => c.nashville).join(' '),
+);
+check('The probable chords of G are the right ones', probableChords(7).map((c) => c.chord.root).join(',') === '7,0,2,4,9,11');
+check('A minor key has its own probable chords', probableChords(9, 'minor')[0].nashville === '1m');
+check(
+  'Every probable chord reads back as written',
+  probableChords(7).every((c) => chordToNashville(c.chord, 7) === c.nashville),
+  probableChords(7).map((c) => chordToNashville(c.chord, 7)).join(' '),
+);
+
+check('A preferred shape needs no capo when it fits', suggestCapo(7, [7, 0, 2]) === 0);
+check('A preferred shape finds the lowest capo', suggestCapo(9, [7, 0, 2]) === 2, String(suggestCapo(9, [7, 0, 2])));
+check('No preference falls back on the open shapes', suggestCapo(5, []) === 1, String(suggestCapo(5, [])));
+check('A capo never goes past the seventh fret', suggestCapo(6, [1]) <= 7, String(suggestCapo(6, [1])));
+
+// ------------------------------------------------ the lot 2 library, moved over
+
+const legacy = migrateLibrary({
+  songs: [
+    { id: 'a', title: 'Chant', artist: '', key: 7, capo: 3, chordPro: CHART },
+    { id: 'b', title: 'Sans grille', artist: '', key: null, capo: null, chordPro: '' },
+  ],
+  sets: [
+    { id: 's', title: 'Culte du soir', date: '2026-09-27', songIds: ['a', 'b', 'disparu'], source: 'manual' },
+  ],
+});
+check('A legacy song keeps its id', legacy.songs[0].id === 'a');
+check('A legacy song keeps its key', legacy.songs[0].defaultKey === 7);
+check('A legacy chart becomes a grid', legacy.songs[0].sections?.[0].bars.join(' ') === '1 5 6m 4');
+check('A legacy song with no chart keeps its key only', legacy.songs[1].sections === undefined);
+check('A legacy set becomes ordered entries', legacy.sets[0].songs.map((e) => e.order).join(',') === '0,1');
+check('A legacy set drops a song it no longer has', legacy.sets[0].songs.length === 2);
+check('A legacy capo moves onto the set entry', legacy.sets[0].songs[0].capo === 3);
+check('A legacy set title becomes the service name', legacy.sets[0].serviceName === 'Culte du soir');
+check('A legacy set entry starts in the song key', legacy.sets[0].songs[1].key === 0);
+check('A blob that is not a library gives an empty one', migrateLibrary(null).songs.length === 0);
+check('A blob with junk songs keeps none', migrateLibrary({ songs: [null, 3] }).songs.length === 0);
 
 // ------------------------------------------------------------- the rename move
 

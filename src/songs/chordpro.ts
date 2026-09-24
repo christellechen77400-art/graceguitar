@@ -1,13 +1,19 @@
 /**
- * ChordPro reader. Pure text in, song structure out — no React, no storage.
+ * Lecteur ChordPro. Du texte pur en entrée, de la structure de chant en sortie —
+ * pas de React, pas de stockage.
  *
- * We read the format rather than render it: the app needs the progression and
- * its key to show shapes, suggest a capo and transpose, not a chord sheet with
- * the chords printed above the words. Lyrics are kept because a worship leader
- * recognises a song by its first line.
+ * On lit le format plutôt qu'on ne l'affiche : l'app a besoin de la grille et de sa
+ * tonalité pour montrer des positions, conseiller un capo et transposer, pas d'une
+ * feuille d'accords imprimés au-dessus des mots. Les paroles sont gardées parce
+ * qu'un chantant reconnaît un chant à sa première ligne — et parce qu'elles sont
+ * utiles sur la fiche, mais elles ne quittent jamais l'appareil.
+ *
+ * Les accords sortent en chiffrage Nashville : c'est la forme sous laquelle la
+ * grille est enregistrée, et elle se transpose sans réécriture.
  */
-import { ChordId, parseChordSymbol } from './chords';
-import { mod12 } from './notes';
+import { ChordId, parseChordSymbol } from '../theory/chords';
+import { Mode, chordToNashville } from '../theory/nashville';
+import { mod12 } from '../theory/notes';
 
 export interface ChordToken {
   /** As written, so an unreadable chord can be shown back to the reader. */
@@ -179,19 +185,45 @@ export function parseChordPro(text: string): ParsedSong {
  * The last chord of a line carries on into the next one rather than being cut off,
  * so `G           G` on two lines reads as one chord, not two.
  */
-export function progression(song: ParsedSong): { root: number; chord: ChordId }[] {
-  const out: { root: number; chord: ChordId }[] = [];
-  for (const section of song.sections) {
+export function changes(sections: SongSection[]): { root: number; chord: ChordId; bass: number | null }[] {
+  const out: { root: number; chord: ChordId; bass: number | null }[] = [];
+  for (const section of sections) {
     for (const line of section.lines) {
       for (const token of line.chords) {
         if (!token.parsed) continue;
         const last = out[out.length - 1];
-        if (last && last.root === token.parsed.root && last.chord === token.parsed.chord) continue;
-        out.push({ root: token.parsed.root, chord: token.parsed.chord });
+        // A slash chord is a different chord even on the same root: G then G/B is
+        // a change, and a grid that hid it would lose the bass line.
+        if (last && last.root === token.parsed.root && last.chord === token.parsed.chord && last.bass === token.parsed.bass) {
+          continue;
+        }
+        out.push(token.parsed);
       }
     }
   }
   return out;
+}
+
+export const progression = (song: ParsedSong) =>
+  changes(song.sections).map(({ root, chord }) => ({ root, chord }));
+
+/**
+ * The bars of one section, in Nashville numbering.
+ *
+ * This is what a parsed chart turns into once it is stored: the section keeps its
+ * label and its degrees, and the chords are worked out again from whatever key the
+ * song is played in on the day.
+ */
+export function sectionBars(section: SongSection, key: number, mode: Mode): string[] {
+  return changes([section]).map((chord) => chordToNashville(chord, key, mode));
+}
+
+/** The lyrics of the chart, sections kept apart by a blank line. */
+export function lyrics(song: ParsedSong): string {
+  return song.sections
+    .map((section) => section.lines.map((line) => line.lyrics).join('\n'))
+    .join('\n\n')
+    .trim();
 }
 
 /**
@@ -232,4 +264,24 @@ export function inferKey(song: ParsedSong): number | null {
     if (!best || score > best.score) best = { key, score };
   }
   return best ? best.key : null;
+}
+
+/**
+ * Whether the song is in a major or a minor key.
+ *
+ * The tonic chord decides: a song that lands on Am is in A minor whatever else it
+ * uses, and one that lands on A is in A major. When the tonic never appears as a
+ * chord — rare, but a chart can start on the fourth — the major third of the key
+ * settles it: a major chord a minor third above the tonic is the III of a minor
+ * key, which major keys do not have.
+ */
+export function inferMode(song: ParsedSong, key: number | null): Mode {
+  if (key === null) return 'major';
+  const used = progression(song);
+  const tonic = used.filter((c) => mod12(c.root - key) === 0);
+  const seen = tonic.find((c) => c.chord === 'min' || c.chord === 'min7' || c.chord === 'min9');
+  if (seen) return 'minor';
+  if (tonic.length) return 'major';
+  const third = used.some((c) => mod12(c.root - key) === 3 && c.chord === 'maj');
+  return third ? 'minor' : 'major';
 }

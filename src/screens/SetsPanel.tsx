@@ -2,21 +2,24 @@ import React, { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Chip, ChipRow, ListRow, SectionHeader, useTextStyles } from '../components/ui';
 import { Question, setChordRun } from '../practice/engine';
-import { emptySong, setChords, setSongs, Song, SongSet } from '../songs/model';
+import { songFromChordPro } from '../songs/import';
+import { emptySong, setChords, setSongs, WorshipSet } from '../songs/model';
 import { SET_SOURCES } from '../songs/sources';
 import { useSongs } from '../songs/store';
 import { useSettings } from '../state/settings';
 import { Theme, useStyles, useTheme } from '../theme';
-import { parseChordPro } from '../theory/chordpro';
-import { noteName } from '../theory/notes';
+import { noteName, prefersFlats } from '../theory/notes';
 import { RunScreen } from './Run';
 
 /**
- * The songs for the coming Sunday, and a way to practise them.
+ * Les chants du prochain dimanche, et de quoi les travailler.
  *
- * Songs are typed in or pasted as ChordPro. The two team sources below are listed
- * but not wired up: they are shown greyed out on purpose, so it is clear where the
- * sets will come from rather than the feature appearing to be missing.
+ * Un chant s'écrit à la main ou se colle en ChordPro. Les deux sources d'équipe
+ * sont annoncées, pas proposées : une ligne grisée et son sous-titre disent
+ * « prévu » sans promettre un badge coloré que rien ne viendrait remplir.
+ *
+ * La fiche d'un chant, la saisie de la grille et le partage d'un set arrivent avec
+ * l'onglet Louange ; ici on garde le minimum qui tient debout tout seul.
  */
 export function SetsPanel() {
   const { t, notation } = useSettings();
@@ -26,17 +29,18 @@ export function SetsPanel() {
   const ui = useTextStyles();
   const [openSet, setOpenSet] = useState<string | null>(null);
   const [run, setRun] = useState<Question[] | null>(null);
-  const [draftTitle, setDraftTitle] = useState('');
+  const [draft, setDraft] = useState({ date: '', name: '' });
   const [newSong, setNewSong] = useState<{ setId: string; title: string; chart: string } | null>(null);
 
   if (run) return <RunScreen questions={run} onExit={() => setRun(null)} />;
 
-  const addSongToSet = (set: SongSet) => {
+  const addSongToSet = (set: WorshipSet) => {
     const title = newSong?.title.trim();
     if (!newSong || !title) return;
     const song = newSong.chart.trim()
-      ? songs.addFromChordPro(newSong.chart, title)
-      : emptySong(title);
+      ? songFromChordPro(newSong.chart, title)
+      : emptySong(title, 0);
+    songs.addSong(song);
     songs.addToSet(set.id, song.id);
     setNewSong(null);
   };
@@ -53,7 +57,7 @@ export function SetsPanel() {
         const open = openSet === set.id;
         return (
           <React.Fragment key={set.id}>
-            <SectionHeader>{set.title || t.sets.untitled}</SectionHeader>
+            <SectionHeader>{set.serviceName || t.sets.untitled}</SectionHeader>
             <Text style={ui.hint}>
               {set.date} · {t.sets.songCount(list.length)}
             </Text>
@@ -71,11 +75,20 @@ export function SetsPanel() {
             {open && (
               <View>
                 {!list.length && <Text style={ui.hint}>{t.sets.noSongs}</Text>}
-                {list.map((song, i) => (
+                {list.map(({ song, entry }, i) => (
                   <View key={song.id} style={s.song}>
                     <View style={s.songText}>
                       <Text style={s.songTitle}>{song.title}</Text>
-                      <Text style={ui.hint}>{songLine(song, notation, t.sets.key, t.sets.capo)}</Text>
+                      <Text style={ui.hint}>
+                        {songLine(
+                          entry.key,
+                          entry.capo,
+                          notation,
+                          prefersFlats(entry.key),
+                          t.sets.key,
+                          t.sets.capo,
+                        )}
+                      </Text>
                     </View>
                     <Pressable
                       onPress={() => songs.moveInSet(set.id, song.id, -1)}
@@ -148,16 +161,6 @@ export function SetsPanel() {
                     <Chip label={t.sets.delete} onPress={() => songs.removeSet(set.id)} />
                   </ChipRow>
                 )}
-
-                {list.some((song) => parseChordPro(song.chordPro).unknown.length > 0) && (
-                  <Text style={ui.hint}>
-                    {t.sets.unknownChords(
-                      Array.from(
-                        new Set(list.flatMap((song) => parseChordPro(song.chordPro).unknown)),
-                      ).join(', '),
-                    )}
-                  </Text>
-                )}
               </View>
             )}
           </React.Fragment>
@@ -165,21 +168,32 @@ export function SetsPanel() {
       })}
 
       <SectionHeader>{t.sets.newSet}</SectionHeader>
-      <TextInput
-        value={draftTitle}
-        onChangeText={setDraftTitle}
-        placeholder={t.sets.setTitle}
-        placeholderTextColor={c.secondary}
-        style={s.input}
-        accessibilityLabel={t.sets.setTitle}
-      />
+      <View style={s.form}>
+        <TextInput
+          value={draft.name}
+          onChangeText={(name) => setDraft({ ...draft, name })}
+          placeholder={t.sets.setTitle}
+          placeholderTextColor={c.secondary}
+          style={s.input}
+          accessibilityLabel={t.sets.setTitle}
+        />
+        <TextInput
+          value={draft.date}
+          onChangeText={(date) => setDraft({ ...draft, date })}
+          placeholder={t.sets.date}
+          placeholderTextColor={c.secondary}
+          autoCapitalize="none"
+          style={s.input}
+          accessibilityLabel={t.sets.date}
+        />
+      </View>
       <ChipRow>
         <Chip
           label={t.sets.newSet}
           onPress={() => {
             // The date defaults to the coming Sunday, which is what a set is for.
-            const set = songs.createSet(draftTitle.trim() || t.sets.untitled);
-            setDraftTitle('');
+            const set = songs.createSet(draft.date.trim() || undefined, draft.name.trim() || undefined);
+            setDraft({ date: '', name: '' });
             setOpenSet(set.id);
           }}
         />
@@ -203,21 +217,22 @@ export function SetsPanel() {
   );
 }
 
-/** "G · capo 2", or nothing when the song does not say. */
-function songLine(song: Song, notation: 'anglo' | 'latin', keyLabel: string, capoLabel: string): string {
-  const parts: string[] = [];
-  if (song.key !== null) parts.push(`${keyLabel} ${noteName(song.key, notation, false)}`);
-  if (song.capo) parts.push(`${capoLabel} ${song.capo}`);
-  const parsed = parseChordPro(song.chordPro);
-  if (!parts.length && parsed.chords.length) {
-    parts.push(parsed.chords.slice(0, 4).map((c) => noteName(c.root, notation, false)).join(' '));
-  }
+/** « Sol · capo 2 », ou rien quand le set ne dit ni tonalité ni capo. */
+function songLine(
+  key: number,
+  capo: number,
+  notation: 'anglo' | 'latin',
+  flats: boolean,
+  keyLabel: string,
+  capoLabel: string,
+): string {
+  const parts = [`${keyLabel} ${noteName(key, notation, flats)}`];
+  if (capo) parts.push(`${capoLabel} ${capo}`);
   return parts.join(' · ');
 }
 
 const makeStyles = ({ c, type, space, radius, size }: Theme) =>
   StyleSheet.create({
-    title: { ...type.greeting, color: c.label, paddingHorizontal: space.lg, marginTop: space.md },
     row: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -234,6 +249,7 @@ const makeStyles = ({ c, type, space, radius, size }: Theme) =>
     icon: { width: size.touch, height: size.touch, alignItems: 'center', justifyContent: 'center' },
     iconText: { ...type.body, color: c.secondary },
     disabled: { opacity: 0.3 },
+    form: { marginBottom: space.sm },
     input: {
       ...type.subhead,
       color: c.label,

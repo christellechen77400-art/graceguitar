@@ -13,6 +13,11 @@ export const LEGACY_PREFIX = 'kinnor.';
 export const STORAGE_KEYS = {
   settings: `${PREFIX}settings.v1`,
   songs: `${PREFIX}songs.v1`,
+  /**
+   * La bibliothèque du lot 3 : les chants en chiffrage Nashville et les sets avec
+   * leur tonalité du jour. `v1` reste déclarée pour que la migration puisse la lire.
+   */
+  library: `${PREFIX}library.v2`,
 } as const;
 
 /** The slice of AsyncStorage the migration needs, so a test can pass a fake. */
