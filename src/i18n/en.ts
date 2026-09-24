@@ -47,6 +47,7 @@ export const en: Dict = {
   showScaleAround: 'Show the scale around the shape',
   nameChord: 'Name a chord',
   close: 'Close',
+  cancel: 'Cancel',
   analyzerHint: 'Tap the frets you play, one note per string. Tap again to remove.',
   clear: 'Clear',
   detected: 'Detected chord',

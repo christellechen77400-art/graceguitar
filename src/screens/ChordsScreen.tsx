@@ -3,15 +3,17 @@ import { Modal, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } fr
 import { useNotePlayer } from '../audio/useNotePlayer';
 import { Fretboard, Marker } from '../components/Fretboard';
 import { AnalyzerPanel } from './AnalyzerPanel';
-import { Chip, ChipRow, DisplayPicker, KeyPicker, Section, styles as ui, ToggleRow } from '../components/ui';
+import { Chip, ChipRow, DisplayPicker, KeyPicker, SectionHeader, Toggle, useTextStyles } from '../components/ui';
 import { useSettings } from '../state/settings';
-import { colors, fonts, space } from '../theme';
+import { Theme, useStyles } from '../theme';
 import { CHORD_TYPES, chordById, ChordId, chordName, chordPcs, chordToneLabel } from '../theory/chords';
 import { FRET_COUNT, noteName, pcAt, prefersFlats, STRING_COUNT, voicingToMidi } from '../theory/notes';
 import { generateVoicings, voicingTab } from '../theory/voicings';
 
 export function ChordsScreen() {
   const { settings, notation, t } = useSettings();
+  const ui = useTextStyles();
+  const s = useStyles(makeStyles);
   const { playStrum } = useNotePlayer();
   const [typeId, setTypeId] = useState<ChordId>('maj');
   const [index, setIndex] = useState(0);
@@ -63,18 +65,17 @@ export function ChordsScreen() {
   return (
     <View>
       <KeyPicker label={t.root} />
-      <Section title={t.chordType}>
-        <ChipRow>
-          {CHORD_TYPES.map((c) => (
-            <Chip
-              key={c.id}
-              label={chordName(root, c, notation, flats)}
-              selected={c.id === typeId}
-              onPress={() => setTypeId(c.id)}
-            />
-          ))}
-        </ChipRow>
-      </Section>
+      <SectionHeader>{t.chordType}</SectionHeader>
+      <ChipRow>
+        {CHORD_TYPES.map((c) => (
+          <Chip
+            key={c.id}
+            label={chordName(root, c, notation, flats)}
+            selected={c.id === typeId}
+            onPress={() => setTypeId(c.id)}
+          />
+        ))}
+      </ChipRow>
 
       <View style={s.header}>
         <Text style={s.chordName}>{chordName(root, chord, notation, flats)}</Text>
@@ -91,13 +92,13 @@ export function ChordsScreen() {
         </Pressable>
       </View>
 
-      <Section>
+      <View style={s.section}>
         <DisplayPicker />
-      </Section>
+      </View>
 
-      <Section>
+      <View style={s.section}>
         <Fretboard markers={markers} muted={muted} focusFret={voicing?.minFret} />
-      </Section>
+      </View>
 
       {voicing ? (
         <View style={s.nav}>
@@ -116,12 +117,12 @@ export function ChordsScreen() {
           />
         </View>
       ) : (
-        <Section>
+        <View style={s.section}>
           <Text style={ui.body}>{t.noVoicing}</Text>
-        </Section>
+        </View>
       )}
 
-      <ToggleRow label={t.showAllTones} value={showAll} onChange={setShowAll} />
+      <Toggle label={t.showAllTones} value={showAll} onChange={setShowAll} />
 
       <Pressable
         onPress={() => setNaming(true)}
@@ -146,7 +147,7 @@ export function ChordsScreen() {
               <Text style={s.sheetCloseText}>{t.close}</Text>
             </Pressable>
           </View>
-          <ScrollView contentContainerStyle={{ paddingBottom: space.xl * 2 }}>
+          <ScrollView contentContainerStyle={s.sheetContent}>
             <AnalyzerPanel />
           </ScrollView>
         </SafeAreaView>
@@ -156,6 +157,7 @@ export function ChordsScreen() {
 }
 
 function NavButton({ label, disabled, onPress }: { label: string; disabled: boolean; onPress: () => void }) {
+  const s = useStyles(makeStyles);
   return (
     <Pressable
       onPress={onPress}
@@ -168,55 +170,59 @@ function NavButton({ label, disabled, onPress }: { label: string; disabled: bool
   );
 }
 
-const s = StyleSheet.create({
-  header: { paddingHorizontal: space.lg, marginTop: space.xl, flexDirection: 'row', alignItems: 'baseline' },
-  chordName: { color: colors.text, fontSize: 40, fontFamily: fonts.display },
-  chordType: { color: colors.muted, fontSize: 15, marginLeft: space.md },
-  nav: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: space.lg, marginTop: space.md },
-  navCenter: { flex: 1, alignItems: 'center' },
-  tab: { color: colors.text, fontSize: 18, fontWeight: '700', letterSpacing: 2 },
-  meta: { color: colors.muted, fontSize: 13, marginTop: 2 },
-  navButton: {
-    paddingHorizontal: space.md,
-    paddingVertical: space.sm,
-    borderRadius: 8,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  navText: { color: colors.text, fontWeight: '600', fontSize: 14 },
-  listen: {
-    minHeight: 44,
-    justifyContent: 'center',
-    paddingHorizontal: space.lg,
-    borderRadius: 10,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  listenText: { color: colors.text, fontWeight: '600', fontSize: 15 },
-  nameChord: {
-    minHeight: 44,
-    marginHorizontal: space.lg,
-    marginTop: space.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  nameChordText: { color: colors.text, fontWeight: '600', fontSize: 15 },
-  sheet: { flex: 1, backgroundColor: colors.bg },
-  sheetBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: space.lg,
-    paddingVertical: space.md,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border,
-  },
-  sheetTitle: { color: colors.text, fontSize: 20, fontFamily: fonts.display },
-  sheetClose: { minHeight: 44, justifyContent: 'center', paddingHorizontal: space.sm },
-  sheetCloseText: { color: colors.gold, fontWeight: '600', fontSize: 15 },
-});
+const makeStyles = ({ c, type, space }: Theme) =>
+  StyleSheet.create({
+    /** Le bloc d'une section sans titre : la même respiration qu'un `SectionHeader`. */
+    section: { marginTop: space.xl },
+    sheetContent: { paddingBottom: space.xl * 2 },
+    header: { paddingHorizontal: space.lg, marginTop: space.xl, flexDirection: 'row', alignItems: 'baseline' },
+    chordName: { ...type.chordName, color: c.label },
+    chordType: { ...type.subhead, color: c.secondary, marginLeft: space.md },
+    nav: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: space.lg, marginTop: space.md },
+    navCenter: { flex: 1, alignItems: 'center' },
+    tab: { ...type.headline, color: c.label, letterSpacing: 2 },
+    meta: { ...type.caption, color: c.secondary, marginTop: 2 },
+    navButton: {
+      paddingHorizontal: space.md,
+      paddingVertical: space.sm,
+      borderRadius: 8,
+      backgroundColor: c.card,
+      borderWidth: 1,
+      borderColor: c.separator,
+    },
+    navText: { ...type.headline, color: c.label },
+    listen: {
+      minHeight: 44,
+      justifyContent: 'center',
+      paddingHorizontal: space.lg,
+      borderRadius: 10,
+      backgroundColor: c.card,
+      borderWidth: 1,
+      borderColor: c.separator,
+    },
+    listenText: { ...type.headline, color: c.label },
+    nameChord: {
+      minHeight: 44,
+      marginHorizontal: space.lg,
+      marginTop: space.xl,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: 10,
+      borderWidth: 1,
+      borderColor: c.separator,
+    },
+    nameChordText: { ...type.headline, color: c.label },
+    sheet: { flex: 1, backgroundColor: c.background },
+    sheetBar: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: space.lg,
+      paddingVertical: space.md,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: c.separator,
+    },
+    sheetTitle: { ...type.cardTitle, color: c.label },
+    sheetClose: { minHeight: 44, justifyContent: 'center', paddingHorizontal: space.sm },
+    sheetCloseText: { ...type.headline, color: c.accent },
+  });

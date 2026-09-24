@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Chip, ChipRow, styles as ui } from '../components/ui';
+import { SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Chip, ChipRow, PrimaryButton, SecondaryButton, useTextStyles } from '../components/ui';
 import { levelFrom, Level, ONBOARDING, practiceFor } from '../practice/onboarding';
 import { useSettings } from '../state/settings';
-import { colors, fonts, space } from '../theme';
+import { Theme, useStyles } from '../theme';
 
 /**
  * The welcome questions, one per screen, every one of them skippable.
@@ -14,6 +14,8 @@ import { colors, fonts, space } from '../theme';
  */
 export function OnboardingScreen({ onDone }: { onDone: () => void }) {
   const { t, update } = useSettings();
+  const s = useStyles(makeStyles);
+  const ui = useTextStyles();
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<(number | null)[]>(() => ONBOARDING.map(() => null));
   const [level, setLevel] = useState<Level | null>(null);
@@ -35,9 +37,7 @@ export function OnboardingScreen({ onDone }: { onDone: () => void }) {
           <Text style={s.title}>{t.onboarding.levelTitle}</Text>
           <Text style={s.level}>{level}</Text>
           <Text style={ui.body}>{t.onboarding.levels[level]}</Text>
-          <Pressable onPress={onDone} accessibilityRole="button" style={s.primary}>
-            <Text style={s.primaryText}>{t.onboarding.finish}</Text>
-          </Pressable>
+          <PrimaryButton label={t.onboarding.finish} onPress={onDone} />
         </ScrollView>
       </SafeAreaView>
     );
@@ -71,65 +71,31 @@ export function OnboardingScreen({ onDone }: { onDone: () => void }) {
         </ChipRow>
 
         <View style={s.footer}>
-          <Pressable
+          <PrimaryButton
+            label={last ? t.onboarding.finish : t.onboarding.next}
             onPress={() => (last ? finish(answers) : setStep(step + 1))}
-            accessibilityRole="button"
-            style={[s.primary, chosen === null && s.disabled]}
             disabled={chosen === null}
-          >
-            <Text style={s.primaryText}>{last ? t.onboarding.finish : t.onboarding.next}</Text>
-          </Pressable>
-          <Pressable onPress={skipAll} accessibilityRole="button" style={s.secondary}>
-            <Text style={s.secondaryText}>{t.onboarding.skip}</Text>
-          </Pressable>
+          />
+          <SecondaryButton label={t.onboarding.skip} onPress={skipAll} />
         </View>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.bg },
-  page: { paddingVertical: space.xl },
-  title: {
-    color: colors.text,
-    fontSize: 34,
-    fontFamily: fonts.display,
-    paddingHorizontal: space.lg,
-  },
-  counter: { color: colors.muted, fontSize: 13, paddingHorizontal: space.lg, marginTop: space.lg },
-  question: {
-    color: colors.text,
-    fontSize: 24,
-    fontFamily: fonts.display,
-    paddingHorizontal: space.lg,
-    marginTop: space.sm,
-    marginBottom: space.md,
-  },
-  level: {
-    color: colors.gold,
-    fontSize: 56,
-    fontFamily: fonts.display,
-    paddingHorizontal: space.lg,
-    marginTop: space.sm,
-  },
-  footer: { paddingHorizontal: space.lg, marginTop: space.xl, gap: space.md },
-  primary: {
-    minHeight: 50,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 10,
-    backgroundColor: colors.gold,
-  },
-  primaryText: { color: colors.ink, fontWeight: '700', fontSize: 16 },
-  secondary: {
-    minHeight: 50,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  secondaryText: { color: colors.text, fontWeight: '600', fontSize: 16 },
-  disabled: { opacity: 0.35 },
-});
+const makeStyles = ({ c, type, space }: Theme) =>
+  StyleSheet.create({
+    root: { flex: 1, backgroundColor: c.background },
+    page: { paddingVertical: space.xl },
+    title: { ...type.greeting, color: c.label, paddingHorizontal: space.lg },
+    counter: { ...type.caption, color: c.secondary, paddingHorizontal: space.lg, marginTop: space.lg },
+    question: {
+      ...type.section,
+      color: c.label,
+      paddingHorizontal: space.lg,
+      marginTop: space.sm,
+      marginBottom: space.md,
+    },
+    level: { ...type.greeting, color: c.accent, paddingHorizontal: space.lg, marginTop: space.sm },
+    footer: { paddingHorizontal: space.lg, marginTop: space.xl, gap: space.md },
+  });

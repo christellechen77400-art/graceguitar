@@ -4,6 +4,9 @@ import { dictionaries, Dict, Lang } from '../i18n';
 import { DEFAULT_PRACTICE, PracticeSettings, ProgressMap } from '../practice/engine';
 import { Level } from '../practice/onboarding';
 import { Notation } from '../theory/notes';
+// Type-only on purpose: `theme.ts` imports `useSettings` from here, and a value
+// import in this direction would close the cycle.
+import type { Appearance } from '../theme';
 import { ensureMigrated, STORAGE_KEYS } from './storage';
 
 export type DisplayMode = 'clean' | 'notes' | 'intervals';
@@ -14,6 +17,12 @@ export interface Settings {
   keyRoot: number;
   display: DisplayMode;
   sound: boolean;
+  /** Light, dark, or whatever the phone is set to. */
+  appearance: Appearance;
+  /** Shown in the greeting, and sent with the profile on sign-up. */
+  firstName: string;
+  /** The shapes the player likes to play with a capo, as pitch classes. */
+  preferredShapes: number[];
   /** Last settings used for an exercise, so a run resumes where it left off. */
   practice: PracticeSettings;
   /** Per-cell practice record, keyed by "<string>:<fret>". */
@@ -32,6 +41,10 @@ const DEFAULTS: Settings = {
   keyRoot: 7,
   display: 'notes',
   sound: true,
+  appearance: 'auto',
+  firstName: '',
+  // G, C and D: the three shapes most worship songs are actually played in.
+  preferredShapes: [7, 0, 2],
   practice: DEFAULT_PRACTICE,
   progress: {},
   practiceDays: [],

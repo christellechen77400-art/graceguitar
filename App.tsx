@@ -1,7 +1,14 @@
+import {
+  Newsreader_400Regular,
+  Newsreader_400Regular_Italic,
+  Newsreader_500Medium,
+  useFonts,
+} from '@expo-google-fonts/newsreader';
+import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import React, { useState } from 'react';
-import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { SoundToggle } from './src/components/SoundToggle';
+import React, { useEffect, useState } from 'react';
+import { Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Segmented } from './src/components/ui';
 import { CagedScreen } from './src/screens/CagedScreen';
 import { ChordsScreen } from './src/screens/ChordsScreen';
@@ -11,25 +18,44 @@ import { ScalesScreen } from './src/screens/ScalesScreen';
 import { WorshipScreen } from './src/screens/WorshipScreen';
 import { SettingsProvider, useSettings } from './src/state/settings';
 import { SongsProvider } from './src/songs/store';
-import { colors, fonts, space } from './src/theme';
-import { Lang } from './src/i18n';
-import { Notation } from './src/theory/notes';
+import { Theme, useStyles } from './src/theme';
 
 type Tab = 'worship' | 'scales' | 'chords' | 'caged' | 'practice';
 const TABS: Tab[] = ['worship', 'scales', 'chords', 'caged', 'practice'];
 
+// The splash stays up until the serif is in memory: otherwise the first frame
+// draws in the system font and the titles visibly jump a moment later.
+SplashScreen.preventAutoHideAsync().catch(() => {});
+
 export default function App() {
+  const [loaded, error] = useFonts({
+    Newsreader_400Regular,
+    Newsreader_500Medium,
+    Newsreader_400Regular_Italic,
+  });
+
+  useEffect(() => {
+    // A font that will not load is not a reason to show nothing at all: the app
+    // falls back to the system serif and carries on.
+    if (loaded || error) SplashScreen.hideAsync().catch(() => {});
+  }, [loaded, error]);
+
+  if (!loaded && !error) return null;
+
   return (
-    <SettingsProvider>
-      <SongsProvider>
-        <Shell />
-      </SongsProvider>
-    </SettingsProvider>
+    <SafeAreaProvider>
+      <SettingsProvider>
+        <SongsProvider>
+          <Shell />
+        </SongsProvider>
+      </SettingsProvider>
+    </SafeAreaProvider>
   );
 }
 
 function Shell() {
   const { settings, ready, t, update } = useSettings();
+  const s = useStyles(makeStyles);
   const [tab, setTab] = useState<Tab>('worship');
   const [welcomed, setWelcomed] = useState(false);
 
@@ -42,48 +68,31 @@ function Shell() {
 
   return (
     <SafeAreaView style={s.root}>
-      <StatusBar style="light" />
+      <StatusBar style={settings.appearance === 'dark' ? 'light' : 'dark'} />
       <View style={s.header}>
-        <View style={{ flex: 1 }}>
+        <View style={s.headerText}>
           <Text style={s.title}>{t.appName}</Text>
           <Text style={s.tagline}>{t.tagline}</Text>
         </View>
-        <View style={s.toggles}>
-          <View style={s.sound}>
-            <SoundToggle />
-          </View>
-          <View style={s.toggle}>
-            <Segmented<Lang>
-              value={settings.lang}
-              onChange={(lang) => update({ lang })}
-              options={[
-                { value: 'fr', label: 'FR' },
-                { value: 'en', label: 'EN' },
-              ]}
-            />
-          </View>
-          {settings.lang === 'fr' && (
-            <View style={[s.toggle, { marginTop: space.xs }]}>
-              <Segmented<Notation>
-                value={settings.notation}
-                onChange={(notation) => update({ notation })}
-                options={[
-                  { value: 'anglo', label: 'C D E' },
-                  { value: 'latin', label: 'Do Ré' },
-                ]}
-              />
-            </View>
-          )}
+        <View style={s.lang}>
+          <Segmented<'fr' | 'en'>
+            value={settings.lang}
+            onChange={(lang) => update({ lang })}
+            options={[
+              { value: 'fr', label: 'FR' },
+              { value: 'en', label: 'EN' },
+            ]}
+          />
         </View>
       </View>
 
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: space.xl * 2 }}>
+      <View style={s.body}>
         {tab === 'worship' && <WorshipScreen />}
         {tab === 'scales' && <ScalesScreen />}
         {tab === 'chords' && <ChordsScreen />}
         {tab === 'caged' && <CagedScreen />}
         {tab === 'practice' && <PracticeScreen />}
-      </ScrollView>
+      </View>
 
       <View style={s.tabBar}>
         {TABS.map((id) => (
@@ -94,6 +103,8 @@ function Shell() {
             accessibilityState={{ selected: tab === id }}
             style={s.tabItem}
           >
+            {/* L'onglet actif se marque par un trait **et** par sa graisse : la
+                couleur seule ne suffit pas à tout le monde. */}
             <View style={[s.tabMark, tab === id && s.tabMarkActive]} />
             <Text style={[s.tabText, tab === id && s.tabTextActive]}>{t.tabs[id]}</Text>
           </Pressable>
@@ -103,30 +114,31 @@ function Shell() {
   );
 }
 
-const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.bg },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    paddingHorizontal: space.lg,
-    paddingTop: space.md,
-    paddingBottom: space.sm,
-  },
-  title: { color: colors.text, fontSize: 34, fontFamily: fonts.display },
-  tagline: { color: colors.muted, fontSize: 14, marginTop: 2 },
-  toggles: { width: 130 },
-  toggle: { marginHorizontal: -space.lg },
-  sound: { alignItems: 'flex-end', marginBottom: space.xs },
-  tabBar: {
-    flexDirection: 'row',
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.border,
-    backgroundColor: colors.bg,
-    paddingBottom: space.xs,
-  },
-  tabItem: { flex: 1, alignItems: 'center', paddingTop: space.sm, paddingBottom: space.sm, minHeight: 48 },
-  tabMark: { width: 18, height: 3, borderRadius: 2, marginBottom: 6, backgroundColor: 'transparent' },
-  tabMarkActive: { backgroundColor: colors.gold },
-  tabText: { color: colors.muted, fontSize: 12, fontWeight: '600' },
-  tabTextActive: { color: colors.text },
-});
+const makeStyles = ({ c, type, space }: Theme) =>
+  StyleSheet.create({
+    root: { flex: 1, backgroundColor: c.background },
+    header: { flexDirection: 'row', alignItems: 'flex-start', paddingTop: space.sm },
+    headerText: { flex: 1 },
+    title: { ...type.cardTitle, color: c.label, paddingHorizontal: space.lg },
+    tagline: { ...type.caption, color: c.secondary, paddingHorizontal: space.lg, marginTop: 2 },
+    lang: { width: 108, marginRight: space.lg, marginTop: space.xs },
+    body: { flex: 1 },
+    tabBar: {
+      flexDirection: 'row',
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: c.separator,
+      backgroundColor: c.background,
+      paddingBottom: space.xs,
+    },
+    tabItem: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: space.sm,
+      minHeight: 48,
+    },
+    tabMark: { width: 18, height: 3, borderRadius: 2, marginBottom: 6, backgroundColor: 'transparent' },
+    tabMarkActive: { backgroundColor: c.accent },
+    tabText: { ...type.tab, color: c.secondary },
+    tabTextActive: { color: c.label, fontWeight: '700' },
+  });

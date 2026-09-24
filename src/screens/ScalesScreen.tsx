@@ -1,8 +1,17 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { Fretboard, Marker, MarkerKind } from '../components/Fretboard';
-import { Chip, ChipRow, DisplayPicker, KeyPicker, Section, ToggleRow } from '../components/ui';
+import {
+  Chip,
+  ChipRow,
+  DisplayPicker,
+  KeyPicker,
+  SectionHeader,
+  Toggle,
+  useTextStyles,
+} from '../components/ui';
 import { useSettings } from '../state/settings';
+import { Theme, useStyles } from '../theme';
 import { chordById, ChordId, chordPcs, chordToneLabel, chordName } from '../theory/chords';
 import { FRET_COUNT, INTERVAL_LABELS, mod12, noteName, pcAt, prefersFlats, STRING_COUNT } from '../theory/notes';
 import { SCALES, scaleById, ScaleId } from '../theory/scales';
@@ -11,6 +20,8 @@ const LAYER_TYPES: ChordId[] = ['maj', 'min', 'dom7', 'maj7', 'min7', 'sus4', 'd
 
 export function ScalesScreen() {
   const { settings, notation, t } = useSettings();
+  const ui = useTextStyles();
+  const s = useStyles(makeStyles);
   const [scaleId, setScaleId] = useState<ScaleId>('major');
   const [targets, setTargets] = useState<number[]>([]);
   const [layerOn, setLayerOn] = useState(false);
@@ -61,59 +72,62 @@ export function ScalesScreen() {
   return (
     <View>
       <KeyPicker label={t.key} />
-      <Section title={t.scale}>
-        <ChipRow>
-          {SCALES.map((s) => (
-            <Chip key={s.id} label={t.scales[s.id]} selected={s.id === scaleId} onPress={() => setScaleId(s.id)} />
-          ))}
-        </ChipRow>
-      </Section>
+      <SectionHeader>{t.scale}</SectionHeader>
+      <ChipRow>
+        {SCALES.map((s) => (
+          <Chip key={s.id} label={t.scales[s.id]} selected={s.id === scaleId} onPress={() => setScaleId(s.id)} />
+        ))}
+      </ChipRow>
 
-      <Section>
+      <View style={s.section}>
         <DisplayPicker />
-      </Section>
+      </View>
 
-      <Section>
+      <View style={s.section}>
         <Fretboard markers={markers} />
-      </Section>
+      </View>
 
-      <Section title={t.targets} hint={t.targetsHint}>
-        <ChipRow>
-          {scale.intervals.map((i) => (
-            <Chip key={i} label={INTERVAL_LABELS[i]} selected={targets.includes(i)} onPress={() => toggleTarget(i)} />
-          ))}
-        </ChipRow>
-      </Section>
+      <SectionHeader>{t.targets}</SectionHeader>
+      <Text style={ui.hint}>{t.targetsHint}</Text>
+      <ChipRow>
+        {scale.intervals.map((i) => (
+          <Chip key={i} label={INTERVAL_LABELS[i]} selected={targets.includes(i)} onPress={() => toggleTarget(i)} />
+        ))}
+      </ChipRow>
 
-      <ToggleRow label={t.chordLayer} value={layerOn} onChange={setLayerOn} />
+      <Toggle label={t.chordLayer} value={layerOn} onChange={setLayerOn} />
       {layerOn && (
         <>
-          <Section title={t.chordLayerRoot}>
-            <ChipRow>
-              {scale.intervals.map((i) => (
-                <Chip
-                  key={i}
-                  label={noteName(root + i, notation, flats)}
-                  selected={layerOffset === i}
-                  onPress={() => setLayerOffset(i)}
-                />
-              ))}
-            </ChipRow>
-          </Section>
-          <Section title={t.chordType}>
-            <ChipRow>
-              {LAYER_TYPES.map((id) => (
-                <Chip
-                  key={id}
-                  label={chordName(root + layerOffset, chordById(id), notation, flats)}
-                  selected={layerType === id}
-                  onPress={() => setLayerType(id)}
-                />
-              ))}
-            </ChipRow>
-          </Section>
+          <SectionHeader>{t.chordLayerRoot}</SectionHeader>
+          <ChipRow>
+            {scale.intervals.map((i) => (
+              <Chip
+                key={i}
+                label={noteName(root + i, notation, flats)}
+                selected={layerOffset === i}
+                onPress={() => setLayerOffset(i)}
+              />
+            ))}
+          </ChipRow>
+          <SectionHeader>{t.chordType}</SectionHeader>
+          <ChipRow>
+            {LAYER_TYPES.map((id) => (
+              <Chip
+                key={id}
+                label={chordName(root + layerOffset, chordById(id), notation, flats)}
+                selected={layerType === id}
+                onPress={() => setLayerType(id)}
+              />
+            ))}
+          </ChipRow>
         </>
       )}
     </View>
   );
 }
+
+const makeStyles = ({ space }: Theme) =>
+  StyleSheet.create({
+    /** Le bloc d'une section sans titre : la même respiration qu'un `SectionHeader`. */
+    section: { marginTop: space.xl },
+  });

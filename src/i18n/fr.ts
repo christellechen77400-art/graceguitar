@@ -45,6 +45,7 @@ export const fr = {
   showScaleAround: 'Afficher la gamme autour de la forme',
   nameChord: 'Nommer un accord',
   close: 'Fermer',
+  cancel: 'Annuler',
   analyzerHint: 'Touchez les cases que vous jouez, une note par corde. Touchez à nouveau pour retirer.',
   clear: 'Effacer',
   detected: 'Accord reconnu',

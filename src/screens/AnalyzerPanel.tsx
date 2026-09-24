@@ -1,9 +1,9 @@
 import React, { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Fretboard, Marker } from '../components/Fretboard';
-import { DisplayPicker, Section, styles as ui } from '../components/ui';
+import { DisplayPicker, useTextStyles } from '../components/ui';
 import { useSettings } from '../state/settings';
-import { colors, fonts, space } from '../theme';
+import { Theme, useStyles } from '../theme';
 import { analyze } from '../theory/analyzer';
 import { chordName, chordToneLabel } from '../theory/chords';
 import { Fret, noteName, pcAt, prefersFlats } from '../theory/notes';
@@ -12,6 +12,8 @@ const EMPTY: Fret[] = [null, null, null, null, null, null];
 
 export function AnalyzerPanel() {
   const { settings, notation, t } = useSettings();
+  const ui = useTextStyles();
+  const s = useStyles(makeStyles);
   const [frets, setFrets] = useState<Fret[]>(EMPTY);
 
   const result = useMemo(() => analyze(frets), [frets]);
@@ -37,12 +39,13 @@ export function AnalyzerPanel() {
 
   return (
     <View>
-      <Section hint={t.analyzerHint}>
+      <View style={s.section}>
+        <Text style={ui.hint}>{t.analyzerHint}</Text>
         <DisplayPicker />
-      </Section>
-      <Section>
+      </View>
+      <View style={s.section}>
         <Fretboard markers={markers} onPressCell={onPressCell} />
-      </Section>
+      </View>
 
       <View style={s.result}>
         <Text style={ui.sectionTitle}>{t.detected}</Text>
@@ -70,19 +73,22 @@ export function AnalyzerPanel() {
   );
 }
 
-const s = StyleSheet.create({
-  result: { marginTop: space.xl },
-  name: { color: colors.gold, fontSize: 44, fontFamily: fonts.display, paddingHorizontal: space.lg },
-  alt: { color: colors.muted, marginTop: space.xs },
-  clear: {
-    alignSelf: 'flex-start',
-    marginLeft: space.lg,
-    marginTop: space.lg,
-    paddingHorizontal: space.lg,
-    paddingVertical: space.sm,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  clearText: { color: colors.text, fontWeight: '600' },
-});
+const makeStyles = ({ c, type, space }: Theme) =>
+  StyleSheet.create({
+    /** Le bloc d'une section sans titre : la même respiration qu'un `SectionHeader`. */
+    section: { marginTop: space.xl },
+    result: { marginTop: space.xl },
+    name: { ...type.chordName, color: c.accent, paddingHorizontal: space.lg },
+    alt: { color: c.secondary, marginTop: space.xs },
+    clear: {
+      alignSelf: 'flex-start',
+      marginLeft: space.lg,
+      marginTop: space.lg,
+      paddingHorizontal: space.lg,
+      paddingVertical: space.sm,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: c.separator,
+    },
+    clearText: { ...type.headline, color: c.label },
+  });

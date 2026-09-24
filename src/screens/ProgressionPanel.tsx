@@ -1,33 +1,42 @@
 import React, { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Fretboard, Marker, MarkerKind } from '../components/Fretboard';
-import { Section, styles as ui } from '../components/ui';
+import { SectionHeader, useTextStyles } from '../components/ui';
 import { dailyRun, heat, Question, streak } from '../practice/engine';
 import { today } from '../songs/model';
 import { useSettings } from '../state/settings';
-import { colors, fonts, space } from '../theme';
+import { tabularNums, Theme, useStyles } from '../theme';
 import { RunScreen } from './Run';
 
 /**
  * What the record says: how many days in a row, and which positions are known.
  *
  * The heat map is a fretboard of mastery. Each practised cell carries its own
- * success rate as a number on the dot, so the map reads the same to someone who
- * cannot tell lilac from gold — the colour is a second cue, never the only one.
+ * success rate as a number on the dot, and the three levels differ by outline as
+ * well as by shade — a reader who cannot tell the two fills apart still sees
+ * three shapes.
  */
 export function ProgressionPanel() {
   const { settings, t } = useSettings();
+  const s = useStyles(makeStyles);
+  const ui = useTextStyles();
   const [run, setRun] = useState<Question[] | null>(null);
 
   const cells = useMemo(() => heat(settings.practice, settings.progress), [settings.practice, settings.progress]);
   const practised = cells.filter((c) => c.attempts > 0);
   const days = streak(settings.practiceDays, today());
 
+  // Trois niveaux, trois silhouettes : accent cerclé, blanc cerclé, blanc. Les
+  // tons `tone` et `chord` ont la même couleur depuis la nouvelle charte, donc
+  // sans cet anneau les deux niveaux du bas seraient indiscernables.
   const markers: Marker[] = cells.map((c) => {
     if (c.rate === null) return { string: c.string, fret: c.fret, kind: 'ghost' as MarkerKind };
     const pct = Math.round(c.rate * 100);
-    const kind: MarkerKind = c.rate >= 0.8 ? 'root' : c.rate >= 0.4 ? 'tone' : 'chord';
-    return { string: c.string, fret: c.fret, kind, label: `${pct}` };
+    if (c.rate >= 0.8) return { string: c.string, fret: c.fret, kind: 'root' as MarkerKind, label: `${pct}` };
+    if (c.rate >= 0.4) {
+      return { string: c.string, fret: c.fret, kind: 'tone' as MarkerKind, ring: true, label: `${pct}` };
+    }
+    return { string: c.string, fret: c.fret, kind: 'chord' as MarkerKind, label: `${pct}` };
   });
 
   if (run) return <RunScreen questions={run} onExit={() => setRun(null)} />;
@@ -44,50 +53,45 @@ export function ProgressionPanel() {
         </View>
       </View>
 
-      <Section title={t.progression.heat} hint={t.progression.heatHint}>
-        {practised.length ? (
-          <Fretboard markers={markers} />
-        ) : (
-          <Text style={ui.hint}>{t.progression.noData}</Text>
-        )}
-        <Text style={s.tally}>
-          {t.progression.seen} : {practised.length} / {cells.length}
-        </Text>
-      </Section>
+      <SectionHeader>{t.progression.heat}</SectionHeader>
+      <Text style={ui.hint}>{t.progression.heatHint}</Text>
+      {practised.length ? (
+        <Fretboard markers={markers} />
+      ) : (
+        <Text style={ui.hint}>{t.progression.noData}</Text>
+      )}
+      <Text style={s.tally}>
+        {t.progression.seen} : {practised.length} / {cells.length}
+      </Text>
 
-      <Section title={t.progression.session} hint={t.progression.sessionHint}>
-        <Pressable
-          onPress={() => setRun(dailyRun(settings.practice, settings.progress, Date.now() % 100000))}
-          accessibilityRole="button"
-          style={s.start}
-        >
-          <Text style={s.startText}>{t.progression.startSession}</Text>
-        </Pressable>
-      </Section>
+      <SectionHeader>{t.progression.session}</SectionHeader>
+      <Text style={ui.hint}>{t.progression.sessionHint}</Text>
+      <Pressable
+        onPress={() => setRun(dailyRun(settings.practice, settings.progress, Date.now() % 100000))}
+        accessibilityRole="button"
+        style={s.start}
+      >
+        <Text style={s.startText}>{t.progression.startSession}</Text>
+      </Pressable>
     </View>
   );
 }
 
-const s = StyleSheet.create({
-  title: {
-    color: colors.text,
-    fontSize: 34,
-    fontFamily: fonts.display,
-    paddingHorizontal: space.lg,
-    marginTop: space.md,
-  },
-  streak: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: space.lg, marginTop: space.md },
-  streakNumber: { color: colors.gold, fontSize: 44, fontFamily: fonts.display, minWidth: 56 },
-  streakText: { flex: 1 },
-  streakLabel: { color: colors.text, fontSize: 16, fontWeight: '600' },
-  tally: { color: colors.muted, fontSize: 13, paddingHorizontal: space.lg, marginTop: space.sm },
-  start: {
-    minHeight: 50,
-    marginHorizontal: space.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 10,
-    backgroundColor: colors.gold,
-  },
-  startText: { color: colors.ink, fontWeight: '700', fontSize: 16 },
-});
+const makeStyles = ({ c, type, space, radius, size }: Theme) =>
+  StyleSheet.create({
+    title: { ...type.greeting, color: c.label, paddingHorizontal: space.lg, marginTop: space.md },
+    streak: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: space.lg, marginTop: space.md },
+    streakNumber: { ...type.greeting, ...tabularNums, color: c.accent, minWidth: 56 },
+    streakText: { flex: 1 },
+    streakLabel: { ...type.headline, color: c.label },
+    tally: { ...type.caption, ...tabularNums, color: c.secondary, paddingHorizontal: space.lg, marginTop: space.sm },
+    start: {
+      minHeight: size.button,
+      marginHorizontal: space.lg,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: radius.button,
+      backgroundColor: c.accent,
+    },
+    startText: { ...type.headline, color: c.onAccent },
+  });

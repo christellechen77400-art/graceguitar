@@ -3,7 +3,7 @@ import { ScrollView } from 'react-native';
 import Svg, { Circle, G, Line, Rect, Text as SvgText } from 'react-native-svg';
 import { useNotePlayer } from '../audio/useNotePlayer';
 import { useSettings } from '../state/settings';
-import { colors } from '../theme';
+import { NECK, useTheme } from '../theme';
 import { FRET_COUNT, fretToMidi, noteName, pcAt, STANDARD_TUNING, STRING_COUNT } from '../theory/notes';
 
 export type MarkerKind = 'root' | 'tone' | 'chord' | 'ghost';
@@ -34,15 +34,21 @@ const R = 13;
 const SINGLE_INLAYS = [3, 5, 7, 9, 15];
 const NUMBERED = [3, 5, 7, 9, 12, 15];
 
+/**
+ * Une fondamentale est orange, tout le reste est blanc. Cette différence-là est
+ * une couleur, et une couleur ne suffit pas : la fondamentale porte donc aussi
+ * un anneau, qui se voit même sans distinguer l'orange du blanc.
+ */
 const FILL: Record<MarkerKind, string> = {
-  root: colors.gold,
-  tone: colors.sky,
-  chord: colors.lilac,
+  root: NECK.root,
+  tone: NECK.note,
+  chord: NECK.note,
   ghost: 'none',
 };
 
 export function Fretboard({ markers, muted = [], onPressCell, focusFret }: Props) {
   const { notation, t } = useSettings();
+  const { c } = useTheme();
   const { playNote } = useNotePlayer();
   const scrollRef = useRef<ScrollView>(null);
 
@@ -87,16 +93,14 @@ export function Fretboard({ markers, muted = [], onPressCell, focusFret }: Props
           width={FRET_COUNT * FRET_W}
           height={boardH + 24}
           rx={4}
-          fill={colors.rosewood}
-          stroke={colors.rosewoodEdge}
-          strokeWidth={2}
+          fill={NECK.rosewood}
         />
 
         {SINGLE_INLAYS.map((f) => (
-          <Circle key={`in${f}`} cx={xFor(f)} cy={midY} r={6} fill={colors.inlay} opacity={0.55} />
+          <Circle key={`in${f}`} cx={xFor(f)} cy={midY} r={6} fill={NECK.inlay} opacity={0.55} />
         ))}
-        <Circle cx={xFor(12)} cy={TOP + GAP * 1.5} r={6} fill={colors.inlay} opacity={0.55} />
-        <Circle cx={xFor(12)} cy={TOP + GAP * 3.5} r={6} fill={colors.inlay} opacity={0.55} />
+        <Circle cx={xFor(12)} cy={TOP + GAP * 1.5} r={6} fill={NECK.inlay} opacity={0.55} />
+        <Circle cx={xFor(12)} cy={TOP + GAP * 3.5} r={6} fill={NECK.inlay} opacity={0.55} />
 
         {Array.from({ length: FRET_COUNT }, (_, i) => i + 1).map((f) => (
           <Line
@@ -105,11 +109,11 @@ export function Fretboard({ markers, muted = [], onPressCell, focusFret }: Props
             x2={NUT_W + f * FRET_W}
             y1={TOP - 12}
             y2={TOP + boardH + 12}
-            stroke={colors.fretWire}
+            stroke={NECK.fretWire}
             strokeWidth={2}
           />
         ))}
-        <Rect x={NUT_W - 5} y={TOP - 12} width={7} height={boardH + 24} fill={colors.bone} />
+        <Rect x={NUT_W - 5} y={TOP - 12} width={7} height={boardH + 24} fill={NECK.nut} />
 
         {Array.from({ length: STRING_COUNT }, (_, s) => (
           <Line
@@ -118,7 +122,7 @@ export function Fretboard({ markers, muted = [], onPressCell, focusFret }: Props
             x2={NUT_W + FRET_COUNT * FRET_W}
             y1={yFor(s)}
             y2={yFor(s)}
-            stroke={colors.string}
+            stroke={NECK.string}
             strokeWidth={2.6 - s * 0.35}
           />
         ))}
@@ -128,7 +132,7 @@ export function Fretboard({ markers, muted = [], onPressCell, focusFret }: Props
             key={`n${f}`}
             x={xFor(f)}
             y={TOP + boardH + 28}
-            fill={colors.muted}
+            fill={c.secondary}
             fontSize={12}
             textAnchor="middle"
           >
@@ -141,7 +145,7 @@ export function Fretboard({ markers, muted = [], onPressCell, focusFret }: Props
             key={`m${s}`}
             x={xFor(0)}
             y={yFor(s) + 5}
-            fill={colors.muted}
+            fill={c.secondary}
             fontSize={15}
             fontWeight="700"
             textAnchor="middle"
@@ -156,26 +160,25 @@ export function Fretboard({ markers, muted = [], onPressCell, focusFret }: Props
           const ghost = m.kind === 'ghost';
           return (
             <G key={`${m.string}-${m.fret}`} opacity={m.dim ? 0.28 : 1}>
-              {m.ring && <Circle cx={cx} cy={cy} r={R + 3.5} fill="none" stroke={colors.cream} strokeWidth={2.5} />}
-              {/* A root is outlined as well as filled. Roots and chord tones differ
-                  in colour, and colour alone is not a difference everyone can see. */}
+              {m.ring && (
+                <Circle cx={cx} cy={cy} r={R + 3.5} fill="none" stroke={NECK.nut} strokeWidth={2.5} />
+              )}
               {m.kind === 'root' && (
-                <Circle cx={cx} cy={cy} r={R + 1.5} fill="none" stroke={colors.cream} strokeWidth={1.5} />
+                <Circle cx={cx} cy={cy} r={R + 1.5} fill="none" stroke={NECK.nut} strokeWidth={1.5} />
               )}
               <Circle
                 cx={cx}
                 cy={cy}
                 r={R}
                 fill={FILL[m.kind]}
-                stroke={ghost ? colors.inlay : 'none'}
-                strokeOpacity={0.55}
+                stroke={ghost ? NECK.ghostStroke : 'none'}
                 strokeWidth={1.5}
               />
               {m.label ? (
                 <SvgText
                   x={cx}
                   y={cy + 4}
-                  fill={ghost ? colors.text : colors.ink}
+                  fill={ghost ? NECK.note : NECK.onMarker}
                   fontSize={m.label.length > 3 ? 9 : 11}
                   fontWeight="700"
                   textAnchor="middle"

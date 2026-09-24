@@ -1,9 +1,9 @@
 import React, { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Fretboard, Marker } from '../components/Fretboard';
-import { KeyPicker, Section, styles as ui } from '../components/ui';
+import { KeyPicker, SectionHeader, useTextStyles } from '../components/ui';
 import { useSettings } from '../state/settings';
-import { colors, fonts, space } from '../theme';
+import { NECK, Theme, useStyles } from '../theme';
 import { chordById, chordName, chordToneLabel } from '../theory/chords';
 import { mod12, noteName, pcAt, prefersFlats } from '../theory/notes';
 import { generateVoicings, voicingTab } from '../theory/voicings';
@@ -12,6 +12,8 @@ import { SetsPanel } from './SetsPanel';
 
 export function WorshipScreen() {
   const { settings, notation, t } = useSettings();
+  const s = useStyles(makeStyles);
+  const ui = useTextStyles();
   const [selected, setSelected] = useState(0);
   const [progIndex, setProgIndex] = useState(0);
 
@@ -46,87 +48,99 @@ export function WorshipScreen() {
   return (
     <View>
       <KeyPicker label={t.key} highlight={COMMON_WORSHIP_KEYS} />
-      <Text style={[ui.hint, { marginTop: space.sm }]}>{t.worship.commonKeyHint}</Text>
+      <Text style={[ui.hint, s.keyHint]}>{t.worship.commonKeyHint}</Text>
 
-      <Section title={t.worship.diatonic} hint={t.worship.diatonicHint}>
-        <View style={s.grid}>
-          {DIATONIC.map((dc, i) => (
-            <Pressable
-              key={dc.roman}
-              onPress={() => setSelected(i)}
-              accessibilityRole="button"
-              accessibilityState={{ selected: selected === i }}
-              style={[s.cell, selected === i && s.cellActive]}
-            >
-              <Text style={[s.cellName, selected === i && s.inkText]}>{nameInKey(key, i)}</Text>
-              <Text style={[s.cellNum, selected === i && s.inkText]}>{dc.nashville}</Text>
-            </Pressable>
-          ))}
-        </View>
-      </Section>
-
-      <Section>
-        <Fretboard markers={markers} muted={muted} focusFret={voicing?.minFret} />
-        {voicing && <Text style={s.tab}>{voicingTab(voicing)}</Text>}
-      </Section>
-
-      <Section title={t.worship.progressions}>
-        {PROGRESSIONS.map((p, i) => (
+      <SectionHeader>{t.worship.diatonic}</SectionHeader>
+      <Text style={ui.hint}>{t.worship.diatonicHint}</Text>
+      <View style={s.grid}>
+        {DIATONIC.map((dc, i) => (
           <Pressable
-            key={p.join('-')}
-            onPress={() => setProgIndex(i)}
+            key={dc.roman}
+            onPress={() => setSelected(i)}
             accessibilityRole="button"
-            style={[s.row, progIndex === i && s.rowActive]}
+            accessibilityState={{ selected: selected === i }}
+            style={[s.cell, selected === i && s.cellActive]}
           >
-            <Text style={s.rowNums}>{p.map((x) => DIATONIC[x].nashville).join('  ')}</Text>
-            <Text style={s.rowNames}>{p.map((x) => nameInKey(key, x)).join('  ')}</Text>
+            <Text style={[s.cellName, selected === i && s.inkText]}>{nameInKey(key, i)}</Text>
+            <Text style={[s.cellNum, selected === i && s.inkText]}>{dc.nashville}</Text>
           </Pressable>
         ))}
-      </Section>
+      </View>
 
-      <Section title={t.worship.capo} hint={t.worship.capoHint}>
-        {capoOptions(key).map((o) => (
-          <View key={o.shapeKey} style={s.row}>
-            <Text style={s.rowNums}>{t.worship.capoRow(o.capo, noteName(o.shapeKey, notation, false))}</Text>
-            <Text style={s.rowNames}>{progression.map((x) => nameInKey(o.shapeKey, x)).join('  ')}</Text>
-          </View>
-        ))}
-      </Section>
+      <View style={s.block}>
+        <Fretboard markers={markers} muted={muted} focusFret={voicing?.minFret} />
+        {voicing && <Text style={s.tab}>{voicingTab(voicing)}</Text>}
+      </View>
+
+      <SectionHeader>{t.worship.progressions}</SectionHeader>
+      {PROGRESSIONS.map((p, i) => (
+        <Pressable
+          key={p.join('-')}
+          onPress={() => setProgIndex(i)}
+          accessibilityRole="button"
+          style={[s.row, progIndex === i && s.rowActive]}
+        >
+          <Text style={s.rowNums}>{p.map((x) => DIATONIC[x].nashville).join('  ')}</Text>
+          <Text style={s.rowNames}>{p.map((x) => nameInKey(key, x)).join('  ')}</Text>
+        </Pressable>
+      ))}
+
+      <SectionHeader>{t.worship.capo}</SectionHeader>
+      <Text style={ui.hint}>{t.worship.capoHint}</Text>
+      {capoOptions(key).map((o) => (
+        <View key={o.shapeKey} style={s.row}>
+          <Text style={s.rowNums}>{t.worship.capoRow(o.capo, noteName(o.shapeKey, notation, false))}</Text>
+          <Text style={s.rowNames}>{progression.map((x) => nameInKey(o.shapeKey, x)).join('  ')}</Text>
+        </View>
+      ))}
 
       <SetsPanel />
     </View>
   );
 }
 
-const s = StyleSheet.create({
-  grid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: space.lg, gap: space.sm },
-  cell: {
-    width: '23%',
-    minWidth: 72,
-    paddingVertical: space.sm,
-    borderRadius: 10,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: 'center',
-  },
-  cellActive: { backgroundColor: colors.gold, borderColor: colors.cream, borderWidth: 2 },
-  cellName: { color: colors.text, fontSize: 20, fontFamily: fonts.display },
-  cellNum: { color: colors.muted, fontSize: 12, marginTop: 2 },
-  inkText: { color: colors.ink, fontWeight: '700' },
-  tab: { color: colors.muted, textAlign: 'center', letterSpacing: 2, marginTop: space.xs, fontWeight: '600' },
-  row: {
-    marginHorizontal: space.lg,
-    paddingVertical: space.md,
-    paddingHorizontal: space.md,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border,
-    // A transparent accent keeps every row the same width; the chosen one thickens
-    // it, so the selection is a shape and not only a shade.
-    borderLeftWidth: 3,
-    borderLeftColor: 'transparent',
-  },
-  rowActive: { backgroundColor: colors.surface, borderRadius: 8, borderLeftColor: colors.gold },
-  rowNums: { color: colors.muted, fontSize: 13 },
-  rowNames: { color: colors.text, fontSize: 18, fontFamily: fonts.display, marginTop: 2 },
-});
+const makeStyles = ({ c, type, space, radius }: Theme) =>
+  StyleSheet.create({
+    keyHint: { marginTop: space.sm },
+    grid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: space.lg, gap: space.sm },
+    cell: {
+      width: '23%',
+      minWidth: 72,
+      paddingVertical: space.sm,
+      borderRadius: radius.chip,
+      backgroundColor: c.card,
+      borderWidth: 1,
+      borderColor: c.separator,
+      alignItems: 'center',
+    },
+    // The chosen cell is filled **and** outlined: the fill alone would be a
+    // difference of colour, which is no difference at all to some readers.
+    cellActive: { backgroundColor: c.accent, borderColor: NECK.nut, borderWidth: 2 },
+    cellName: { ...type.cardTitle, color: c.label },
+    cellNum: { ...type.caption, color: c.secondary, marginTop: 2 },
+    inkText: { color: c.onAccent },
+    tab: {
+      ...type.subhead,
+      color: c.secondary,
+      textAlign: 'center',
+      letterSpacing: 2,
+      marginTop: space.xs,
+      fontWeight: '600',
+    },
+    // The block that stood in an untitled `Section`: only its top margin mattered.
+    block: { marginTop: space.lg },
+    row: {
+      marginHorizontal: space.lg,
+      paddingVertical: space.md,
+      paddingHorizontal: space.md,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: c.separator,
+      // A transparent accent keeps every row the same width; the chosen one thickens
+      // it, so the selection is a shape and not only a shade.
+      borderLeftWidth: 3,
+      borderLeftColor: 'transparent',
+    },
+    rowActive: { backgroundColor: c.card, borderRadius: radius.icon, borderLeftColor: c.accent },
+    rowNums: { ...type.caption, color: c.secondary },
+    rowNames: { ...type.cardTitle, color: c.label, marginTop: 2 },
+  });

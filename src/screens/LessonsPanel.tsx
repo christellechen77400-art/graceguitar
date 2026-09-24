@@ -1,9 +1,16 @@
 import React, { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Fretboard, Marker, MarkerKind } from '../components/Fretboard';
-import { Chip, ChipRow, Section, styles as ui } from '../components/ui';
+import {
+  Chip,
+  ChipRow,
+  PrimaryButton,
+  SecondaryButton,
+  SectionHeader,
+  useTextStyles,
+} from '../components/ui';
 import { useSettings } from '../state/settings';
-import { colors, fonts, space } from '../theme';
+import { Theme, useStyles } from '../theme';
 import { chordById, chordPcs, chordToneLabel } from '../theory/chords';
 import { LessonContent, LessonId, LESSON_BOARDS, LESSON_ORDER, scoreLesson } from '../theory/lessons';
 import { lessonsEn } from '../theory/lessons.en';
@@ -19,6 +26,7 @@ import { scaleById } from '../theory/scales';
  */
 export function LessonsPanel() {
   const { settings, t } = useSettings();
+  const s = useStyles(makeStyles);
   const [open, setOpen] = useState<LessonId | null>(null);
   const lessons = settings.lang === 'en' ? lessonsEn : lessonsFr;
 
@@ -29,7 +37,7 @@ export function LessonsPanel() {
   return (
     <View>
       <Text style={s.title}>{t.theory.title}</Text>
-      <Section>
+      <View style={s.section}>
         {LESSON_ORDER.map((id, i) => (
           <Pressable key={id} onPress={() => setOpen(id)} accessibilityRole="button" style={s.row}>
             <Text style={s.index}>{i + 1}</Text>
@@ -37,7 +45,7 @@ export function LessonsPanel() {
             <Text style={s.chevron}>›</Text>
           </Pressable>
         ))}
-      </Section>
+      </View>
     </View>
   );
 }
@@ -52,6 +60,8 @@ function LessonView({
   onExit: () => void;
 }) {
   const { settings, notation, t } = useSettings();
+  const s = useStyles(makeStyles);
+  const ui = useTextStyles();
   const [answers, setAnswers] = useState<(number | null)[]>(() => content.questions.map(() => null));
   const [reading, setReading] = useState(true);
   const board = LESSON_BOARDS[id];
@@ -110,25 +120,24 @@ function LessonView({
               {paragraph}
             </Text>
           ))}
-          <Section>
+          <View style={s.section}>
             <Fretboard markers={markers} focusFret={board.focusFret} />
-          </Section>
+          </View>
           <View style={s.footer}>
-            <Pressable onPress={() => setReading(false)} accessibilityRole="button" style={s.primary}>
-              <Text style={s.primaryText}>{t.theory.read}</Text>
-            </Pressable>
+            <PrimaryButton label={t.theory.read} onPress={() => setReading(false)} />
           </View>
         </View>
       ) : (
         <View>
-          <Section>
+          <View style={s.section}>
             <Fretboard markers={markers} focusFret={board.focusFret} />
-          </Section>
+          </View>
 
           {content.questions.map((question, qi) => {
             const chosen = answers[qi];
             return (
-              <Section key={qi} title={t.theory.questionOf(qi + 1, content.questions.length)}>
+              <View key={qi}>
+                <SectionHeader>{t.theory.questionOf(qi + 1, content.questions.length)}</SectionHeader>
                 <Text style={s.question}>{question.prompt}</Text>
                 <ChipRow>
                   {question.choices.map((choice, ci) => {
@@ -154,7 +163,7 @@ function LessonView({
                   })}
                 </ChipRow>
                 {chosen !== null && <Text style={ui.hint}>{question.explain}</Text>}
-              </Section>
+              </View>
             );
           })}
 
@@ -164,23 +173,18 @@ function LessonView({
                 <Text style={s.score}>
                   {t.theory.done} · {t.theory.score(right, content.questions.length)}
                 </Text>
-                <Pressable onPress={onExit} accessibilityRole="button" style={s.primary}>
-                  <Text style={s.primaryText}>{t.theory.done}</Text>
-                </Pressable>
+                <PrimaryButton label={t.theory.done} onPress={onExit} />
               </>
             ) : (
               <Text style={ui.hint}>{t.theory.doneHint}</Text>
             )}
-            <Pressable
+            <SecondaryButton
+              label={t.theory.restart}
               onPress={() => {
                 setAnswers(content.questions.map(() => null));
                 setReading(true);
               }}
-              accessibilityRole="button"
-              style={s.secondary}
-            >
-              <Text style={s.secondaryText}>{t.theory.restart}</Text>
-            </Pressable>
+            />
           </View>
         </View>
       )}
@@ -188,62 +192,36 @@ function LessonView({
   );
 }
 
-const s = StyleSheet.create({
-  title: {
-    color: colors.text,
-    fontSize: 34,
-    fontFamily: fonts.display,
-    paddingHorizontal: space.lg,
-    marginTop: space.md,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    minHeight: 44,
-    paddingHorizontal: space.lg,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border,
-  },
-  index: { color: colors.muted, fontSize: 14, width: 24 },
-  rowLabel: { color: colors.text, fontSize: 17, flex: 1 },
-  chevron: { color: colors.muted, fontSize: 22 },
-  lesson: { paddingBottom: space.xl },
-  lessonBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: space.lg, paddingTop: space.sm },
-  quit: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  quitText: { color: colors.text, fontSize: 20 },
-  lessonOf: { color: colors.muted, fontSize: 13, marginLeft: space.sm },
-  lessonTitle: {
-    color: colors.text,
-    fontSize: 28,
-    fontFamily: fonts.display,
-    paddingHorizontal: space.lg,
-    marginTop: space.sm,
-  },
-  body: {
-    color: colors.text,
-    fontSize: 15,
-    lineHeight: 22,
-    paddingHorizontal: space.lg,
-    marginTop: space.md,
-  },
-  question: { color: colors.text, fontSize: 17, fontWeight: '600', paddingHorizontal: space.lg, marginBottom: space.sm },
-  footer: { paddingHorizontal: space.lg, marginTop: space.lg, gap: space.md },
-  primary: {
-    minHeight: 50,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 10,
-    backgroundColor: colors.gold,
-  },
-  primaryText: { color: colors.ink, fontWeight: '700', fontSize: 16 },
-  secondary: {
-    minHeight: 50,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  secondaryText: { color: colors.text, fontWeight: '600', fontSize: 16 },
-  score: { color: colors.gold, fontSize: 18, fontWeight: '700' },
-});
+const makeStyles = ({ c, type, space, size }: Theme) =>
+  StyleSheet.create({
+    title: { ...type.cardTitle, color: c.label, paddingHorizontal: space.lg, marginTop: space.md },
+    /** Le bloc d'une section sans titre : la même respiration qu'un `SectionHeader`. */
+    section: { marginTop: space.xl },
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      minHeight: size.row,
+      paddingHorizontal: space.lg,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: c.separator,
+    },
+    index: { ...type.caption, color: c.secondary, width: 24 },
+    rowLabel: { ...type.body, color: c.label, flex: 1 },
+    chevron: { ...type.section, color: c.secondary },
+    lesson: { paddingBottom: space.xl },
+    lessonBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: space.lg, paddingTop: space.sm },
+    quit: { width: size.touch, height: size.touch, alignItems: 'center', justifyContent: 'center' },
+    quitText: { ...type.section, color: c.label },
+    lessonOf: { ...type.caption, color: c.secondary, marginLeft: space.sm },
+    lessonTitle: { ...type.section, color: c.label, paddingHorizontal: space.lg, marginTop: space.sm },
+    body: {
+      ...type.subhead,
+      color: c.label,
+      lineHeight: 22,
+      paddingHorizontal: space.lg,
+      marginTop: space.md,
+    },
+    question: { ...type.headline, color: c.label, paddingHorizontal: space.lg, marginBottom: space.sm },
+    footer: { paddingHorizontal: space.lg, marginTop: space.lg, gap: space.md },
+    score: { ...type.headline, color: c.accent },
+  });

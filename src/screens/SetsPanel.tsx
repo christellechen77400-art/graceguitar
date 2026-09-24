@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import { Chip, ChipRow, Section, styles as ui } from '../components/ui';
+import { Chip, ChipRow, SectionHeader, useTextStyles } from '../components/ui';
 import { Question, setChordRun } from '../practice/engine';
 import { emptySong, setChords, setSongs, Song, SongSet } from '../songs/model';
 import { SET_SOURCES } from '../songs/sources';
 import { useSongs } from '../songs/store';
 import { useSettings } from '../state/settings';
-import { colors, fonts, space } from '../theme';
+import { Theme, useStyles, useTheme } from '../theme';
 import { parseChordPro } from '../theory/chordpro';
 import { noteName } from '../theory/notes';
 import { RunScreen } from './Run';
@@ -21,6 +21,9 @@ import { RunScreen } from './Run';
 export function SetsPanel() {
   const { t, notation } = useSettings();
   const songs = useSongs();
+  const { c } = useTheme();
+  const s = useStyles(makeStyles);
+  const ui = useTextStyles();
   const [openSet, setOpenSet] = useState<string | null>(null);
   const [run, setRun] = useState<Question[] | null>(null);
   const [draftTitle, setDraftTitle] = useState('');
@@ -49,7 +52,8 @@ export function SetsPanel() {
         const list = setSongs(set, songs.songs);
         const open = openSet === set.id;
         return (
-          <Section key={set.id} title={set.title || t.sets.untitled}>
+          <React.Fragment key={set.id}>
+            <SectionHeader>{set.title || t.sets.untitled}</SectionHeader>
             <Text style={ui.hint}>
               {set.date} · {t.sets.songCount(list.length)}
             </Text>
@@ -108,7 +112,7 @@ export function SetsPanel() {
                       value={newSong.title}
                       onChangeText={(title) => setNewSong({ ...newSong, title })}
                       placeholder={t.sets.songTitle}
-                      placeholderTextColor={colors.muted}
+                      placeholderTextColor={c.secondary}
                       style={s.input}
                       accessibilityLabel={t.sets.songTitle}
                     />
@@ -116,7 +120,7 @@ export function SetsPanel() {
                       value={newSong.chart}
                       onChangeText={(chart) => setNewSong({ ...newSong, chart })}
                       placeholder={t.sets.importHint}
-                      placeholderTextColor={colors.muted}
+                      placeholderTextColor={c.secondary}
                       multiline
                       style={[s.input, s.chart]}
                       accessibilityLabel={t.sets.importHint}
@@ -156,40 +160,39 @@ export function SetsPanel() {
                 )}
               </View>
             )}
-          </Section>
+          </React.Fragment>
         );
       })}
 
-      <Section title={t.sets.newSet}>
-        <TextInput
-          value={draftTitle}
-          onChangeText={setDraftTitle}
-          placeholder={t.sets.setTitle}
-          placeholderTextColor={colors.muted}
-          style={s.input}
-          accessibilityLabel={t.sets.setTitle}
+      <SectionHeader>{t.sets.newSet}</SectionHeader>
+      <TextInput
+        value={draftTitle}
+        onChangeText={setDraftTitle}
+        placeholder={t.sets.setTitle}
+        placeholderTextColor={c.secondary}
+        style={s.input}
+        accessibilityLabel={t.sets.setTitle}
+      />
+      <ChipRow>
+        <Chip
+          label={t.sets.newSet}
+          onPress={() => {
+            // The date defaults to the coming Sunday, which is what a set is for.
+            const set = songs.createSet(draftTitle.trim() || t.sets.untitled);
+            setDraftTitle('');
+            setOpenSet(set.id);
+          }}
         />
-        <ChipRow>
-          <Chip
-            label={t.sets.newSet}
-            onPress={() => {
-              // The date defaults to the coming Sunday, which is what a set is for.
-              const set = songs.createSet(draftTitle.trim() || t.sets.untitled);
-              setDraftTitle('');
-              setOpenSet(set.id);
-            }}
-          />
-        </ChipRow>
-      </Section>
+      </ChipRow>
 
-      <Section title={t.sets.sources} hint={t.sets.sourceHint}>
-        {SET_SOURCES.filter((source) => source.id !== 'manual').map((source) => (
-          <View key={source.id} style={s.row}>
-            <Text style={[s.rowLabel, !source.available && s.muted]}>{t.sets.source[source.id]}</Text>
-            {!source.available && <Text style={s.badge}>{t.sets.comingSoon}</Text>}
-          </View>
-        ))}
-      </Section>
+      <SectionHeader>{t.sets.sources}</SectionHeader>
+      <Text style={ui.hint}>{t.sets.sourceHint}</Text>
+      {SET_SOURCES.filter((source) => source.id !== 'manual').map((source) => (
+        <View key={source.id} style={s.row}>
+          <Text style={[s.rowLabel, !source.available && s.muted]}>{t.sets.source[source.id]}</Text>
+          {!source.available && <Text style={s.badge}>{t.sets.comingSoon}</Text>}
+        </View>
+      ))}
     </View>
   );
 }
@@ -206,44 +209,39 @@ function songLine(song: Song, notation: 'anglo' | 'latin', keyLabel: string, cap
   return parts.join(' · ');
 }
 
-const s = StyleSheet.create({
-  title: {
-    color: colors.text,
-    fontSize: 34,
-    fontFamily: fonts.display,
-    paddingHorizontal: space.lg,
-    marginTop: space.md,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    minHeight: 44,
-    paddingHorizontal: space.lg,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border,
-  },
-  rowLabel: { color: colors.text, fontSize: 16, flex: 1 },
-  muted: { color: colors.muted },
-  badge: { color: colors.muted, fontSize: 12, fontWeight: '600' },
-  chevron: { color: colors.muted, fontSize: 22 },
-  song: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: space.lg, minHeight: 44 },
-  songText: { flex: 1 },
-  songTitle: { color: colors.text, fontSize: 16 },
-  icon: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  iconText: { color: colors.muted, fontSize: 16 },
-  disabled: { opacity: 0.3 },
-  input: {
-    color: colors.text,
-    fontSize: 15,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 10,
-    paddingHorizontal: space.md,
-    paddingVertical: space.sm,
-    marginHorizontal: space.lg,
-    marginBottom: space.sm,
-    minHeight: 44,
-  },
-  chart: { minHeight: 120, textAlignVertical: 'top' },
-});
+const makeStyles = ({ c, type, space, radius, size }: Theme) =>
+  StyleSheet.create({
+    title: { ...type.greeting, color: c.label, paddingHorizontal: space.lg, marginTop: space.md },
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      minHeight: size.row,
+      paddingHorizontal: space.lg,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: c.separator,
+    },
+    rowLabel: { ...type.body, color: c.label, flex: 1 },
+    muted: { color: c.secondary },
+    badge: { ...type.caption, color: c.secondary, fontWeight: '600' },
+    chevron: { ...type.section, color: c.secondary },
+    song: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: space.lg, minHeight: size.row },
+    songText: { flex: 1 },
+    songTitle: { ...type.body, color: c.label },
+    icon: { width: size.touch, height: size.touch, alignItems: 'center', justifyContent: 'center' },
+    iconText: { ...type.body, color: c.secondary },
+    disabled: { opacity: 0.3 },
+    input: {
+      ...type.subhead,
+      color: c.label,
+      backgroundColor: c.card,
+      borderWidth: 1,
+      borderColor: c.separator,
+      borderRadius: radius.chip,
+      paddingHorizontal: space.md,
+      paddingVertical: space.sm,
+      marginHorizontal: space.lg,
+      marginBottom: space.sm,
+      minHeight: size.touch,
+    },
+    chart: { minHeight: 120, textAlignVertical: 'top' },
+  });

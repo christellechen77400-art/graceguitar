@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useNotePlayer } from '../audio/useNotePlayer';
 import { Fretboard, Marker } from '../components/Fretboard';
-import { Chip, ChipRow, Section, styles as ui } from '../components/ui';
+import { Chip, ChipRow, useTextStyles } from '../components/ui';
 import {
   Attempt,
   Question,
@@ -12,7 +12,7 @@ import {
   summarise,
 } from '../practice/engine';
 import { useSettings } from '../state/settings';
-import { colors, fonts, space } from '../theme';
+import { tabularNums, Theme, useStyles } from '../theme';
 import { chordById, chordName } from '../theory/chords';
 import { mod12, noteName, Notation, pcAt, prefersFlats, STANDARD_TUNING } from '../theory/notes';
 import { DIATONIC } from '../theory/worship';
@@ -26,6 +26,7 @@ import { DIATONIC } from '../theory/worship';
  */
 export function RunScreen({ questions, onExit }: { questions: Question[]; onExit: () => void }) {
   const { settings, notation, t, update } = useSettings();
+  const s = useStyles(makeStyles);
   const { playNote, playStrum } = useNotePlayer();
   const [run, setRun] = useState(() => ({ questions, attempts: [] as Attempt[], shownAt: Date.now() }));
   const [summary, setSummary] = useState<RunSummary | null>(null);
@@ -292,6 +293,7 @@ function AnswerArea(props: {
 }) {
   const { question: q, notation, flats } = props;
   const { t } = useSettings();
+  const s = useStyles(makeStyles);
   const name = (pc: number) => noteName(pc, notation, flats);
 
   // Questions answered by playing a fret.
@@ -306,51 +308,51 @@ function AnswerArea(props: {
           })
         : [];
     return (
-      <Section>
+      <View style={s.block}>
         <Fretboard markers={markers} onPressCell={props.onFret} />
-      </Section>
+      </View>
     );
   }
 
   if (q.exercise === 'nameNote') {
     return (
-      <Section>
+      <View style={s.block}>
         <ChipRow>
           {q.choices.map((pc) => (
             <Chip key={pc} label={name(pc)} selected={props.answer === pc} onPress={() => props.onAnswer(pc)} />
           ))}
         </ChipRow>
-      </Section>
+      </View>
     );
   }
 
   if (q.exercise === 'capoExpress') {
     return (
-      <Section>
+      <View style={s.block}>
         <ChipRow>
           {Array.from({ length: 8 }, (_, n) => n).map((n) => (
             <Chip key={n} label={String(n)} selected={props.answer === n} onPress={() => props.onAnswer(n)} />
           ))}
         </ChipRow>
-      </Section>
+      </View>
     );
   }
 
   if (q.exercise === 'earQuality') {
     return (
-      <Section>
+      <View style={s.block}>
         <ChipRow>
           <Chip label={t.major} selected={props.answer === 0} onPress={() => props.onAnswer(0)} />
           <Chip label={t.minor} selected={props.answer === 1} onPress={() => props.onAnswer(1)} />
         </ChipRow>
-      </Section>
+      </View>
     );
   }
 
   if (q.exercise === 'earDegree') {
     // Only the degrees a cadence actually lands on, as the engine asks them.
     return (
-      <Section>
+      <View style={s.block}>
         <ChipRow>
           {[0, 5, 7, 9].map((degree) => (
             <Chip
@@ -361,7 +363,7 @@ function AnswerArea(props: {
             />
           ))}
         </ChipRow>
-      </Section>
+      </View>
     );
   }
 
@@ -411,13 +413,15 @@ function SummaryView({
   onExit: () => void;
 }) {
   const { t } = useSettings();
+  const s = useStyles(makeStyles);
+  const ui = useTextStyles();
   return (
     <View style={s.run}>
       <Text style={s.prompt}>{t.practice.score}</Text>
       <Text style={s.score}>
         {summary.correct} / {summary.total}
       </Text>
-      <Text style={ui.body}>
+      <Text style={[ui.body, tabularNums]}>
         {t.practice.accuracy} {Math.round(summary.accuracy * 100)} % · {t.practice.meanTime}{' '}
         {(summary.meanMs / 1000).toFixed(1)} s
       </Text>
@@ -438,58 +442,63 @@ function SummaryView({
   );
 }
 
-const s = StyleSheet.create({
-  // Not flex: 1 — a run renders inside the app's scroll view, so it sizes itself.
-  run: { paddingBottom: space.xl },
-  runBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: space.lg, paddingTop: space.md },
-  quit: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  quitText: { color: colors.text, fontSize: 20 },
-  barTrack: {
-    flex: 1,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: colors.surfaceHi,
-    marginHorizontal: space.sm,
-  },
-  barFill: { height: 4, borderRadius: 2, backgroundColor: colors.gold },
-  counter: { color: colors.muted, fontSize: 13, minWidth: 76, textAlign: 'right' },
-  prompt: {
-    color: colors.text,
-    fontSize: 28,
-    fontFamily: fonts.display,
-    paddingHorizontal: space.lg,
-    marginTop: space.lg,
-  },
-  slot: { color: colors.muted, fontSize: 15, marginRight: space.sm, alignSelf: 'center', width: 32 },
-  feedback: { fontSize: 20, fontWeight: '700', paddingHorizontal: space.lg, marginTop: space.md },
-  feedbackOk: { color: colors.sky },
-  feedbackBad: { color: colors.gold },
-  runFooter: { flexDirection: 'row', gap: space.md, paddingHorizontal: space.lg, marginTop: space.xl },
-  primary: {
-    minHeight: 50,
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 10,
-    backgroundColor: colors.gold,
-  },
-  primaryText: { color: colors.ink, fontWeight: '700', fontSize: 16 },
-  secondary: {
-    minHeight: 50,
-    paddingHorizontal: space.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  secondaryText: { color: colors.text, fontWeight: '600', fontSize: 16 },
-  disabled: { opacity: 0.35 },
-  score: {
-    color: colors.gold,
-    fontSize: 56,
-    fontFamily: fonts.display,
-    paddingHorizontal: space.lg,
-    marginTop: space.sm,
-  },
-});
+const makeStyles = ({ c, type, space, radius, size }: Theme) =>
+  StyleSheet.create({
+    // Not flex: 1 — a run renders inside the app's scroll view, so it sizes itself.
+    run: { paddingBottom: space.xl },
+    runBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: space.lg, paddingTop: space.md },
+    quit: { width: size.touch, height: size.touch, alignItems: 'center', justifyContent: 'center' },
+    quitText: { ...type.body, color: c.label },
+    barTrack: {
+      flex: 1,
+      height: 4,
+      borderRadius: 2,
+      backgroundColor: c.fill,
+      marginHorizontal: space.sm,
+    },
+    barFill: { height: 4, borderRadius: 2, backgroundColor: c.accent },
+    counter: { ...type.caption, ...tabularNums, color: c.secondary, minWidth: 76, textAlign: 'right' },
+    prompt: {
+      ...type.section,
+      color: c.label,
+      paddingHorizontal: space.lg,
+      marginTop: space.lg,
+    },
+    // The answer area stood in an untitled `Section`, whose only contribution was
+    // its top margin: keep exactly that.
+    block: { marginTop: space.lg },
+    slot: { ...type.subhead, color: c.secondary, marginRight: space.sm, alignSelf: 'center', width: 32 },
+    feedback: { ...type.headline, paddingHorizontal: space.lg, marginTop: space.md },
+    // Right and wrong are told apart by the word, not by the colour: the palette
+    // has one accent, and it means "action", never "well done".
+    feedbackOk: { color: c.label },
+    feedbackBad: { color: c.destructive },
+    runFooter: { flexDirection: 'row', gap: space.md, paddingHorizontal: space.lg, marginTop: space.xl },
+    primary: {
+      minHeight: size.button,
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: radius.button,
+      backgroundColor: c.accent,
+    },
+    primaryText: { ...type.headline, color: c.onAccent },
+    secondary: {
+      minHeight: size.button,
+      paddingHorizontal: space.lg,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: radius.button,
+      borderWidth: 1,
+      borderColor: c.separator,
+    },
+    secondaryText: { ...type.headline, color: c.label },
+    disabled: { opacity: 0.35 },
+    score: {
+      ...type.greeting,
+      ...tabularNums,
+      color: c.accent,
+      paddingHorizontal: space.lg,
+      marginTop: space.sm,
+    },
+  });
