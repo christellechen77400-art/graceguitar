@@ -10,7 +10,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Keyboard, StyleSheet, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { FloatingTabBar } from './src/components/FloatingTabBar';
-import { TabBarContext, TabId } from './src/navigation';
+import { RetestContext, TabBarContext, TabId } from './src/navigation';
 import { ChordsScreen } from './src/screens/ChordsScreen';
 import { NeckScreen } from './src/screens/NeckScreen';
 import { OnboardingScreen } from './src/screens/OnboardingScreen';
@@ -57,6 +57,8 @@ function Shell() {
   const s = useStyles(makeStyles);
   const [tab, setTab] = useState<TabId>('today');
   const [welcomed, setWelcomed] = useState(false);
+  // Le test du niveau, rouvert depuis « Mon espace ».
+  const [retest, setRetest] = useState(false);
   const [keyboard, setKeyboard] = useState(false);
 
   // Ceux qui demandent à cacher la barre. Un compteur et non un drapeau : une
@@ -82,8 +84,15 @@ function Shell() {
   // The welcome questions come before anything else, and only ever once. They wait
   // for the stored settings to be read, so they cannot flash for someone who has
   // already answered them.
-  if (ready && !settings.onboarded && !welcomed) {
-    return <OnboardingScreen onDone={() => setWelcomed(true)} />;
+  if (ready && ((!settings.onboarded && !welcomed) || retest)) {
+    return (
+      <OnboardingScreen
+        onDone={() => {
+          setWelcomed(true);
+          setRetest(false);
+        }}
+      />
+    );
   }
 
   return (
@@ -91,6 +100,7 @@ function Shell() {
       <StatusBar style={dark ? 'light' : 'dark'} />
       {/* Le contexte enveloppe les écrans, pas seulement la barre : c'est un
           écran — une séance en plein écran — qui demande à la cacher. */}
+      <RetestContext.Provider value={() => setRetest(true)}>
       <TabBarContext.Provider value={hold}>
         <View style={s.body}>
           {tab === 'today' && <TodayScreen />}
@@ -102,6 +112,7 @@ function Shell() {
 
         {!keyboard && !held && <FloatingTabBar tab={tab} onChange={setTab} />}
       </TabBarContext.Provider>
+      </RetestContext.Provider>
     </View>
   );
 }

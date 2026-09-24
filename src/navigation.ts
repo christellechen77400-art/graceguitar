@@ -8,6 +8,19 @@
  */
 import React, { createContext, useContext, useEffect, useRef } from 'react';
 
+/**
+ * Refaire le test du niveau.
+ *
+ * Le test est un écran plein, pas une page de « Mon espace » : la feuille se
+ * ferme, l'écran s'affiche, et à la fin on revient à l'app. La coquille est donc
+ * la seule à pouvoir le rouvrir, et c'est elle qui le déclare ici.
+ */
+export const RetestContext = createContext<() => void>(() => {});
+
+export function useRetest(): () => void {
+  return useContext(RetestContext);
+}
+
 export type TabId = 'today' | 'worship' | 'chords' | 'neck' | 'practice';
 
 /** L'ordre de la barre. L'index sert au déplacement de la pastille. */

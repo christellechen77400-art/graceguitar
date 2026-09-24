@@ -7,7 +7,17 @@
  */
 import { Platform } from 'react-native';
 
-import { REMINDER_HOUR, shouldRemind, THURSDAY } from './reminder';
+import { clampReminderHour, REMINDER_HOUR, shouldRemind, THURSDAY } from './reminder';
+
+/**
+ * Chaque rappel porte son nom.
+ *
+ * Deux rappels cohabitent — le set du jeudi et la pratique du jour — et chacun
+ * doit pouvoir être retiré sans toucher à l'autre : on annule par identifiant, on
+ * n'efface jamais tout.
+ */
+const SUNDAY_SET = 'sunday-set';
+const DAILY_PRACTICE = 'daily-practice';
 
 /**
  * Met en place, ou retire, le rappel hebdomadaire.
@@ -25,13 +35,14 @@ export async function syncSundayReminder(
   if (Platform.OS === 'web') return;
   try {
     const notifications = await import('expo-notifications');
-    await notifications.cancelAllScheduledNotificationsAsync();
+    await notifications.cancelScheduledNotificationAsync(SUNDAY_SET);
     if (!shouldRemind(THURSDAY, hasSongs, reminders)) return;
 
     const granted = await notifications.requestPermissionsAsync();
     if (!granted.granted) return;
 
     await notifications.scheduleNotificationAsync({
+      identifier: SUNDAY_SET,
       content: { title, body },
       trigger: {
         type: notifications.SchedulableTriggerInputTypes.WEEKLY,
@@ -43,5 +54,40 @@ export async function syncSundayReminder(
     });
   } catch {
     // Sans notification, l'app reste une app : elle ne dit simplement rien.
+  }
+}
+
+/**
+ * Met en place, ou retire, le rappel quotidien.
+ *
+ * Même contrat que le rappel du jeudi : on demande la permission une fois, et
+ * tout échec laisse l'app fonctionner. L'heure est bornée par la règle, pas ici.
+ */
+export async function syncDailyReminder(
+  enabled: boolean,
+  hour: number,
+  title: string,
+  body: string,
+): Promise<void> {
+  if (Platform.OS === 'web') return;
+  try {
+    const notifications = await import('expo-notifications');
+    await notifications.cancelScheduledNotificationAsync(DAILY_PRACTICE);
+    if (!enabled) return;
+
+    const granted = await notifications.requestPermissionsAsync();
+    if (!granted.granted) return;
+
+    await notifications.scheduleNotificationAsync({
+      identifier: DAILY_PRACTICE,
+      content: { title, body },
+      trigger: {
+        type: notifications.SchedulableTriggerInputTypes.DAILY,
+        hour: clampReminderHour(hour),
+        minute: 0,
+      },
+    });
+  } catch {
+    // Un rappel qui ne se programme pas ne doit rien casser d'autre.
   }
 }

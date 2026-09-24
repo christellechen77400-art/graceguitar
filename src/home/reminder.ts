@@ -27,6 +27,19 @@ export function shouldRemind(dayOfWeek: number, hasSongs: boolean, reminders: bo
   return reminders && dayOfWeek === THURSDAY && !hasSongs;
 }
 
+/**
+ * Le rappel quotidien se règle entre 6 h et 22 h.
+ *
+ * Hors de ces bornes ce n'est plus un rappel, c'est une sonnerie en pleine nuit :
+ * le compteur s'arrête donc aux heures où l'on peut jouer.
+ */
+export const REMINDER_HOUR_MIN = 6;
+export const REMINDER_HOUR_MAX = 22;
+
+export function clampReminderHour(hour: number): number {
+  return Math.min(REMINDER_HOUR_MAX, Math.max(REMINDER_HOUR_MIN, Math.round(hour)));
+}
+
 /** Le prochain jeudi à 19 h, heure locale. */
 export function nextThursdayEvening(now = new Date()): Date {
   const date = new Date(now);

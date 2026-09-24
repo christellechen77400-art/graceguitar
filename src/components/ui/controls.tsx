@@ -183,11 +183,14 @@ export function SecondaryButton({
   label,
   onPress,
   disabled,
+  destructive,
   style,
 }: {
   label: string;
   onPress: () => void;
   disabled?: boolean;
+  /** Une action qu'on ne peut pas défaire : elle se dit en rouge, sans crier. */
+  destructive?: boolean;
   style?: ViewStyle;
 }) {
   const s = useStyles(makeStyles);
@@ -197,15 +200,24 @@ export function SecondaryButton({
       disabled={disabled}
       accessibilityRole="button"
       accessibilityState={{ disabled }}
-      style={({ pressed }) => [s.secondary, pressed && s.pressed, disabled && s.disabled, style]}
+      style={({ pressed }) => [
+        s.secondary,
+        destructive && s.secondaryDestructive,
+        pressed && s.pressed,
+        disabled && s.disabled,
+        style,
+      ]}
     >
-      <Text style={s.secondaryText}>{label}</Text>
+      <Text style={[s.secondaryText, destructive && s.secondaryTextDestructive]}>{label}</Text>
     </Pressable>
   );
 }
 
 const makeStyles = ({ c, type, space }: Theme) =>
   StyleSheet.create({
+    /** Le rouge ne remplit pas le bouton : il le borde et colore son texte. */
+    secondaryDestructive: { borderColor: c.destructive },
+    secondaryTextDestructive: { color: c.destructive },
     chip: {
       minHeight: size.touch,
       justifyContent: 'center',

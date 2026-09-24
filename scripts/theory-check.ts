@@ -52,7 +52,15 @@ import { dayPart, greetingName, MAX_GREETING_NAME, seedOf, startOfWeek, weekDays
 import { weekMinutes } from '../src/home/stats';
 import { bestTime, challengeOfWeek, CHALLENGE_EXERCISES, CHALLENGE_QUESTIONS } from '../src/home/challenge';
 import { notionOfDay, NOTIONS } from '../src/home/notion';
-import { nextThursdayEvening, REMINDER_HOUR, shouldRemind, THURSDAY } from '../src/home/reminder';
+import {
+  clampReminderHour,
+  nextThursdayEvening,
+  REMINDER_HOUR,
+  REMINDER_HOUR_MAX,
+  REMINDER_HOUR_MIN,
+  shouldRemind,
+  THURSDAY,
+} from '../src/home/reminder';
 import { originLabel, setSourceLabel, songLine } from '../src/songs/labels';
 import { fold, nextSet, recentSongs, searchSongs, sundayNeedsSongs } from '../src/songs/library';
 import {
@@ -68,6 +76,7 @@ import { emptySong, nextSunday, nextSundays, setChords, setSongs, Song, SongSour
 import { en } from '../src/i18n/en';
 import { fr } from '../src/i18n/fr';
 import { formatDay, formatDayTitle, sectionLabel } from '../src/i18n';
+import { exportJson, exportName, EXPORT_FORMAT } from '../src/state/export';
 import { songFromChordPro } from '../src/songs/import';
 import { migrateLibrary } from '../src/songs/migrate';
 import { SET_SOURCES } from '../src/songs/sources';
@@ -1132,6 +1141,47 @@ const sunday = dailySession(DEFAULT_PRACTICE, {}, 20260927, SUNDAY_QUESTIONS);
 check('A Sunday session still has three exercises', sunday.exercises.length === 3);
 check('A Sunday session is eighteen questions', sunday.questionCount === 18, String(sunday.questionCount));
 check('Every Sunday exercise is shorter', sunday.exercises.every((e) => e.questions.length === SUNDAY_QUESTIONS));
+
+// ------------------------------------------------------- mon espace, en local
+
+// L'heure du rappel quotidien est bornée : en dehors, ce n'est plus un rappel.
+check('A reminder hour too early is pulled up', clampReminderHour(2) === REMINDER_HOUR_MIN);
+check('A reminder hour too late is pulled down', clampReminderHour(23) === REMINDER_HOUR_MAX);
+check('A reminder hour in the day is left alone', clampReminderHour(8) === 8);
+check('A reminder hour with minutes is rounded', clampReminderHour(7.6) === 8);
+check('French hours read on the 24-hour clock', fr.hour(19) === '19 h' && fr.hour(7) === '7 h');
+check('English hours read on the 12-hour clock', en.hour(19) === '7 PM' && en.hour(7) === '7 AM');
+check('Midnight and noon read as twelve in English', en.hour(0) === '12 AM' && en.hour(12) === '12 PM');
+
+// L'export : ce qu'on emporte doit se relire tout seul.
+const exportedSong: Song = emptySong('Mon chant', 7);
+const exportedSet: WorshipSet = { ...soon, songs: [{ songId: exportedSong.id, key: 7, capo: 2, order: 0 }] };
+const exportedAt = new Date('2026-09-24T10:00:00.000Z');
+const exported = exportJson(
+  {
+    firstName: 'Christelle',
+    level: 2,
+    goalMinutes: 10,
+    hand: 'right',
+    practice: DEFAULT_PRACTICE,
+    progress: { '0:3': { attempts: 2, correct: 1, totalMs: 1500 } },
+    practiceDays: ['2026-09-23'],
+    runs: [],
+    songs: [exportedSong],
+    sets: [exportedSet],
+  },
+  exportedAt,
+);
+const carriedOver = JSON.parse(exported);
+check('An export says which app wrote it', carriedOver.app === 'GraceGuitar');
+check('An export carries its format number', carriedOver.format === EXPORT_FORMAT);
+check('An export is stamped with the moment it was made', carriedOver.exportedAt === '2026-09-24T10:00:00.000Z');
+check('An export carries the songs', carriedOver.songs.length === 1 && carriedOver.songs[0].title === 'Mon chant');
+check('An export carries the sets with their songs', carriedOver.sets[0].songs[0].capo === 2);
+check('An export carries the progress', carriedOver.progress['0:3'].correct === 1);
+check('An export carries the settings it was made with', carriedOver.practice.questionCount === DEFAULT_PRACTICE.questionCount);
+check('An export is written to be read by a person', exported.split('\n').length > 20);
+check('The export file is named after the day', exportName(exportedAt) === 'graceguitar-2026-09-24.json');
 
 function report() {
   if (failures) {

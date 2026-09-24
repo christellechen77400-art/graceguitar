@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from 'react';
 import { useSettings } from '../state/settings';
-import { initAudio, playNote, playStrum, setSoundEnabled, stopAll, stopStrum } from './player';
+import { initAudio, playNote, playStrum, setSoundEnabled, setVolume, stopAll, stopStrum } from './player';
 
 /**
  * Playback wired to the sound setting.
@@ -18,6 +18,10 @@ export function useNotePlayer() {
   useEffect(() => {
     setSoundEnabled(settings.sound);
   }, [settings.sound]);
+
+  useEffect(() => {
+    setVolume(settings.volume);
+  }, [settings.volume]);
 
   return useMemo(() => ({ playNote, playStrum, stopStrum, stopAll }), []);
 }
