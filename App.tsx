@@ -18,6 +18,8 @@ import { PracticeScreen } from './src/screens/PracticeScreen';
 import { TodayScreen } from './src/screens/TodayScreen';
 import { WorshipScreen } from './src/screens/WorshipScreen';
 import { SettingsProvider, useSettings } from './src/state/settings';
+import { AuthProvider } from './src/services/auth';
+import { SyncProvider } from './src/services/sync';
 import { SongsProvider } from './src/songs/store';
 import { Theme, useStyles, useTheme } from './src/theme';
 
@@ -44,7 +46,13 @@ export default function App() {
     <SafeAreaProvider>
       <SettingsProvider>
         <SongsProvider>
-          <Shell />
+          {/* Le compte, puis l'échange : l'échange a besoin de savoir qui est
+              connecté, et il n'existe pas sans compte. */}
+          <AuthProvider>
+            <SyncProvider>
+              <Shell />
+            </SyncProvider>
+          </AuthProvider>
         </SongsProvider>
       </SettingsProvider>
     </SafeAreaProvider>

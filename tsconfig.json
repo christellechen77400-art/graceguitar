@@ -5,5 +5,9 @@
     // scripts/ are ESM and use import.meta; Metro and Babel do the real transform,
     // so this only tells tsc how to read the syntax.
     "module": "esnext"
-  }
+  },
+  // Les Edge Functions tournent sous Deno, pas sous React Native : elles
+  // importent par URL et parlent un `Deno` que TypeScript ne connaît pas ici.
+  // Elles se vérifient avec `supabase functions deploy`, pas avec `npm run typecheck`.
+  "exclude": ["node_modules", "supabase/functions"]
 }

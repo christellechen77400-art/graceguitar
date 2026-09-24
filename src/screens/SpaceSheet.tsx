@@ -1,18 +1,19 @@
 /**
- * Mon espace, en mode local.
+ * Mon espace.
  *
  * C'est le seul endroit où l'on règle l'app : la langue, la notation et le son ont
  * quitté l'en-tête des écrans, parce qu'un réglage qu'on change une fois n'a rien à
  * faire dans une barre de titre. Ce qui se règle en jouant — la tonalité, la gamme,
  * l'affichage du manche — reste là où on joue.
  *
- * Le compte viendra plus tard : tant qu'il n'y a pas de serveur, l'app fonctionne
- * seule et cette feuille ne promet rien d'autre que ce qu'elle fait.
+ * Le compte n'apparaît que s'il y a un serveur : sans projet Supabase configuré,
+ * la section disparaît entièrement et l'app reste un carnet sur le téléphone.
  */
 import * as Clipboard from 'expo-clipboard';
 import React, { useState } from 'react';
 import { Linking, Platform, Share, StyleSheet, Text, TextInput, View } from 'react-native';
 import {
+  Card,
   Chip,
   ChipRow,
   ListRow,
@@ -26,6 +27,8 @@ import {
   useTextStyles,
 } from '../components/ui';
 import { APP_VERSION, PRIVACY_URL, SUPPORT_EMAIL, TERMS_URL } from '../config';
+import { initialsOf } from '../services/account';
+import { useAuth } from '../services/auth';
 import {
   clampReminderHour,
   REMINDER_HOUR_MAX,
@@ -39,6 +42,7 @@ import { useSongs } from '../songs/store';
 import { Appearance, Theme, useStyles, useTheme } from '../theme';
 import { noteName, prefersFlats } from '../theory/notes';
 import { CAPO_SHAPES } from '../theory/worship';
+import { AccountSheet } from './AccountSheet';
 
 /** Le volume se règle en trois crans : assez pour s'entendre, pas pour gêner. */
 const VOLUMES = [
@@ -57,6 +61,7 @@ type Soon = 'church' | 'tuner' | 'plus';
 export function SpaceSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const { settings, notation, t, update } = useSettings();
   const { songs, sets } = useSongs();
+  const auth = useAuth();
   const { c } = useTheme();
   const s = useStyles(makeStyles);
   const ui = useTextStyles();
@@ -66,6 +71,10 @@ export function SpaceSheet({ visible, onClose }: { visible: boolean; onClose: ()
   /** L'écran « bientôt disponible », nommé par ce qu'on a touché. */
   const [soon, setSoon] = useState<Soon | null>(null);
   const [exported, setExported] = useState<'shared' | 'copied' | null>(null);
+  const [account, setAccount] = useState(false);
+  /** La suppression du compte se demande deux fois : `ask`, puis `confirm`. */
+  const [deleting, setDeleting] = useState<'ask' | 'confirm' | null>(null);
+  const [deleteFailed, setDeleteFailed] = useState(false);
 
   const volume = VOLUMES.reduce(
     (best, v) => (Math.abs(v.level - settings.volume) < Math.abs(best.level - settings.volume) ? v : best),
@@ -122,6 +131,60 @@ export function SpaceSheet({ visible, onClose }: { visible: boolean; onClose: ()
     });
 
   if (soon) return <SoonSheet which={soon} onClose={() => setSoon(null)} />;
+  if (account) return <AccountSheet onClose={() => setAccount(false)} />;
+
+  // La suppression d'un compte ne se demande pas une fois : la première feuille
+  // dit ce qui va partir, la seconde le redit et attend le geste.
+  if (deleting) {
+    const last = deleting === 'confirm';
+    return (
+      <Sheet
+        visible={visible}
+        title={last ? t.space.account.deleteConfirm : t.space.account.delete}
+        onClose={() => {
+          setDeleting(null);
+          setDeleteFailed(false);
+        }}
+        closeLabel={t.cancel}
+        footer={
+          <View style={s.footerRow}>
+            <SecondaryButton
+              label={t.cancel}
+              style={s.grow}
+              onPress={() => {
+                setDeleting(null);
+                setDeleteFailed(false);
+              }}
+            />
+            <SecondaryButton
+              destructive
+              label={last ? t.space.account.deleteYes : t.space.account.delete}
+              style={s.grow}
+              onPress={() => {
+                if (!last) return setDeleting('confirm');
+                auth
+                  .deleteAccount()
+                  .then((result) => {
+                    if (result.ok) {
+                      setDeleting(null);
+                      onClose();
+                    } else {
+                      setDeleteFailed(true);
+                    }
+                  })
+                  .catch(() => setDeleteFailed(true));
+              }}
+            />
+          </View>
+        }
+      >
+        <Text style={s.confirm}>
+          {last ? t.space.account.deleteConfirmHint : t.space.account.deleteHint}
+        </Text>
+        {deleteFailed ? <Text style={[s.confirm, s.failed]}>{t.space.account.deleteFailed}</Text> : null}
+      </Sheet>
+    );
+  }
 
   if (resetting) {
     return (
@@ -162,6 +225,34 @@ export function SpaceSheet({ visible, onClose }: { visible: boolean; onClose: ()
         accessibilityLabel={t.space.name}
       />
       <Text style={ui.hint}>{t.space.nameHint}</Text>
+
+      {/* Sans serveur configuré, l'en-tête entier disparaît : rien ne doit
+          annoncer un compte qui ne pourrait pas exister. */}
+      {auth.available ? (
+        auth.account ? (
+          <View style={s.accountHead}>
+            <View style={s.avatar}>
+              <Text style={s.avatarText}>{initialsOf(settings.firstName, auth.account.email)}</Text>
+            </View>
+            <View style={s.accountText}>
+              <Text style={s.accountName} numberOfLines={1}>
+                {settings.firstName || t.space.name}
+              </Text>
+              <Text style={s.accountMail} numberOfLines={1}>
+                {auth.account.email}
+              </Text>
+            </View>
+          </View>
+        ) : (
+          <Card>
+            <Text style={s.invite}>{t.space.account.invite}</Text>
+            <View style={s.cardRow}>
+              <PrimaryButton label={t.space.account.signUp} style={s.grow} onPress={() => setAccount(true)} />
+              <SecondaryButton label={t.space.account.signIn} style={s.grow} onPress={() => setAccount(true)} />
+            </View>
+          </Card>
+        )
+      ) : null}
 
       <SectionHeader>{t.space.game}</SectionHeader>
       <ListRow
@@ -321,7 +412,22 @@ export function SpaceSheet({ visible, onClose }: { visible: boolean; onClose: ()
       <ListRow title={t.space.support} chevron onPress={() => Linking.openURL(`mailto:${SUPPORT_EMAIL}`).catch(() => {})} />
       <ListRow title={t.space.privacy} chevron onPress={() => Linking.openURL(PRIVACY_URL).catch(() => {})} />
       <ListRow title={t.space.terms} chevron onPress={() => Linking.openURL(TERMS_URL).catch(() => {})} />
-      <ListRow title={t.space.version} value={APP_VERSION} last />
+      <ListRow title={t.space.version} value={APP_VERSION} last={!auth.account} />
+
+      {/* En tout dernier, et seulement quand il y a un compte : c'est la seule
+          ligne de la feuille qu'on ne peut pas défaire. */}
+      {auth.account ? (
+        <View style={s.block}>
+          <ListRow
+            destructive
+            title={t.space.account.delete}
+            subtitle={t.space.account.deleteHint}
+            chevron
+            last
+            onPress={() => setDeleting('ask')}
+          />
+        </View>
+      ) : null}
 
     </Sheet>
   );
@@ -379,6 +485,29 @@ const makeStyles = ({ c, type, space, radius, size }: Theme) =>
     /** Une ligne de liste qui suit un bouton : elle a besoin d'air au-dessus. */
     block: { marginTop: space.md },
     confirm: { ...type.body, color: c.label, paddingHorizontal: space.lg, marginTop: space.lg },
+    failed: { color: c.destructive, marginTop: space.sm },
     footerRow: { flexDirection: 'row', gap: space.md },
+    accountHead: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: space.md,
+      paddingHorizontal: space.lg,
+      marginTop: space.lg,
+    },
+    avatar: {
+      width: size.touch,
+      height: size.touch,
+      borderRadius: size.touch / 2,
+      backgroundColor: c.accent,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    avatarText: { ...type.body, color: c.onAccent },
+    accountText: { flex: 1 },
+    accountName: { ...type.cardTitle, color: c.label },
+    accountMail: { ...type.caption, color: c.secondary },
+    invite: { ...type.body, color: c.label, paddingHorizontal: space.lg, marginTop: space.lg },
+    /** Le rang de boutons de la carte d'invitation : elle porte ses marges. */
+    cardRow: { flexDirection: 'row', gap: space.md, paddingHorizontal: space.lg, marginTop: space.md },
     grow: { flex: 1 },
   });

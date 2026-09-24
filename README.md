@@ -45,3 +45,16 @@ les boutons de compte sont masqués : c'est l'état normal tant que le projet Su
 
 La clé de service de Supabase reste **uniquement** dans les secrets de la fonction Edge, jamais
 dans l'app ni dans le dépôt.
+
+### Ce qu'Expo Go ne permet pas
+
+Deux choses demandent un *development build* (`npx expo run:ios`), pas Expo Go :
+
+- **Les liens `graceguitar://`** — le retour de mot de passe (`graceguitar://reset-password`) et
+  l'import d'un set partagé. Le code les lit, mais c'est le système qui doit ouvrir l'app, et
+  Expo Go ne peut pas s'enregistrer sous ce schéma.
+- **Recevoir un texte ChordPro par la feuille de partage.** Le plugin de configuration
+  correspondant ne peut pas être enregistré dans Expo Go, donc l'import se fait pour l'instant en
+  collant le texte dans l'app.
+
+Tout le reste — les chants, les sets, les exercices, le son, le compte — fonctionne dans Expo Go.

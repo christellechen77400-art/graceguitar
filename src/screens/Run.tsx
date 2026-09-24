@@ -15,6 +15,7 @@ import {
   summarise,
 } from '../practice/engine';
 import { useHideTabBar } from '../navigation';
+import { eventsOfRun, rememberEvents } from '../services/merge';
 import { useSettings } from '../state/settings';
 import { space, tabularNums, Theme, useStyles } from '../theme';
 import { chordById, chordName } from '../theory/chords';
@@ -97,7 +98,16 @@ export function RunScreen({ questions, onExit }: { questions: Question[]; onExit
       : [...settings.practiceDays, today];
     // Le compte-rendu de la séance, gardé pour les minutes de la semaine et le
     // meilleur temps du défi : rien d'autre ne retient une durée.
-    update({ progress, practiceDays: days, runs: rememberRun(settings.runs, runRecord(asked, attempts, today)) });
+    const record = runRecord(asked, attempts, today);
+    // Les réponses elles-mêmes, en plus du total : c'est ce qui permet de
+    // reconstruire la progression sur un autre appareil. L'instant de la séance
+    // donne leur identifiant, donc un envoi refait n'écrit pas deux fois.
+    update({
+      progress,
+      practiceDays: days,
+      runs: rememberRun(settings.runs, record),
+      events: rememberEvents(settings.events, eventsOfRun(asked, attempts, new Date())),
+    });
     setSummary(summarise(attempts));
   };
 

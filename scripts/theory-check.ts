@@ -81,6 +81,32 @@ import { songFromChordPro } from '../src/songs/import';
 import { migrateLibrary } from '../src/songs/migrate';
 import { SET_SOURCES } from '../src/songs/sources';
 import { migrateLegacyKeys, migrationPlan, STORAGE_KEYS } from '../src/state/storage';
+import { CHUNK_SIZE, chunkCountKey, chunkKey, chunkValue, joinChunks } from '../src/services/chunk';
+import { authErrorKey } from '../src/services/authErrors';
+import {
+  daysFromEvents,
+  EVENT_HISTORY,
+  eventsOfRun,
+  foldEvents,
+  mergeById,
+  mergeLibrary,
+  rebaseProgress,
+  rememberEvents,
+  unionDays,
+  unionEvents,
+} from '../src/services/merge';
+import {
+  eventRow,
+  profileRow,
+  rowToEvent,
+  rowToSet,
+  rowToSong,
+  setRow,
+  setSongRow,
+  settingsFromProfile,
+  songRow,
+} from '../src/services/cloudRows';
+import { isEmail, MIN_PASSWORD, passwordStrength } from '../src/services/password';
 import { voicingTab, generateVoicings } from '../src/theory/voicings';
 import { CAPO_SHAPES, capoOptions, DEFAULT_CAPO_SHAPES, probableChords, suggestCapo } from '../src/theory/worship';
 
@@ -1182,6 +1208,160 @@ check('An export carries the progress', carriedOver.progress['0:3'].correct === 
 check('An export carries the settings it was made with', carriedOver.practice.questionCount === DEFAULT_PRACTICE.questionCount);
 check('An export is written to be read by a person', exported.split('\n').length > 20);
 check('The export file is named after the day', exportName(exportedAt) === 'graceguitar-2026-09-24.json');
+
+// ---------------------------------------------------------------------------
+// Le compte : ce qui voyage, ce qui se fusionne, et ce qui ne part jamais.
+// ---------------------------------------------------------------------------
+
+// La session dans le trousseau : SecureStore refuse au-delà de 2 048 octets.
+const session = 'x'.repeat(4500);
+const parts = chunkValue(session);
+check('A long value is cut into pieces', parts.length === Math.ceil(4500 / CHUNK_SIZE), `${parts.length}`);
+check('Every piece fits what the keychain accepts', parts.every((part) => part.length <= CHUNK_SIZE));
+check('The pieces put the value back together', joinChunks(parts) === session);
+check('The pieces are numbered under the same name', chunkKey('session', 2) === 'session.2' && chunkCountKey('session') === 'session.n');
+check('A missing piece gives up rather than half a value', joinChunks(['a', null]) === null);
+check('A value that was never written is not a value', joinChunks([]) === null);
+
+// Les erreurs du serveur, traduites.
+check('A wrong password is not a network problem', authErrorKey({ message: 'Invalid login credentials', status: 400 }) === 'badCredentials');
+check('An address already taken says so', authErrorKey({ message: 'User already registered', status: 422 }) === 'inUse');
+check('A short password says so', authErrorKey({ message: 'Password should be at least 8 characters', status: 422 }) === 'weakPassword');
+check('Too many attempts says so', authErrorKey({ message: 'Too many requests', status: 429 }) === 'rateLimited');
+check('A dead network says so', authErrorKey({ message: 'Network request failed' }) === 'offline');
+check('An error nobody knows stays unknown', authErrorKey({ message: 'Boom', status: 500 }) === 'unknown');
+check('No error at all is still an error we admit', authErrorKey(null) === 'offline');
+
+// Les mots de passe : huit caractères, et un avis qui ne bloque rien.
+check('Eight characters is the floor', MIN_PASSWORD === 8);
+check('A short password is weak', passwordStrength('court') === 'weak');
+check('Eight plain characters stay weak', passwordStrength('motdepasse') === 'weak');
+check('A little variety is enough to be medium', passwordStrength('Motdepasse1') === 'medium');
+check('Long and varied is strong', passwordStrength('Motdepasse1!x') === 'strong');
+check('An address without an arobase is not one', !isEmail('christelle.example.com'));
+check('An address without a domain is not one', !isEmail('christelle@'));
+check('An ordinary address is one', isEmail(' christelle@example.com '));
+
+// La fusion : le plus récent gagne, et rien ne disparaît.
+const early = { id: 'a', updatedAt: '2026-09-01T00:00:00.000Z' };
+const late = { id: 'a', updatedAt: '2026-09-02T00:00:00.000Z' };
+const onlyRemote = { id: 'b', updatedAt: '2026-09-03T00:00:00.000Z' };
+const onlyLocal = { id: 'c', updatedAt: '2026-09-01T00:00:00.000Z' };
+const merged = mergeById([early, onlyLocal], [late, onlyRemote]);
+check('The newest version of a row wins', merged[0] === late);
+check('A row only the phone has is kept', merged.some((row) => row.id === 'c'));
+check('A row only the account has arrives', merged.some((row) => row.id === 'b'));
+check('The local order comes first', merged.map((row) => row.id).join('') === 'acb', merged.map((row) => row.id).join(''));
+check('Two rows dated the same keep the phone version', mergeById([late], [{ ...late, tag: 'remote' } as typeof late])[0] === late);
+
+// Une réponse enregistrée, et ce qu'on en fait.
+const runMoment = new Date('2026-09-24T18:30:00.000Z');
+const asked: Question[] = [
+  { exercise: 'nameNote', string: 0, fret: 3, choices: [3, 5, 7, 9], answer: 3 },
+  // L'oreille ne désigne aucune case : sa réponse ne doit pas entrer dans la carte.
+  { exercise: 'earDegree', key: 7, degree: 4 },
+  { exercise: 'nameNote', string: 1, fret: 2, choices: [0, 2, 4, 6], answer: 2 },
+];
+const tries: Attempt[] = [
+  { correct: true, ms: 1200 },
+  { correct: true, ms: 900 },
+  { correct: false, ms: 2400 },
+];
+const journey = eventsOfRun(asked, tries, runMoment);
+check('Only the questions about a position are written down', journey.length === 2, `${journey.length}`);
+check('A response carries the place it was about', journey[0].string === 0 && journey[0].fret === 3);
+check('A response says whether it was right', journey[0].correct && !journey[1].correct);
+check('A response is stamped with the run', journey.every((event) => event.createdAt === '2026-09-24T18:30:00.000Z'));
+const replay = eventsOfRun(asked, tries, runMoment);
+check('Replaying the same run writes the same lines', replay.every((event, i) => event.id === journey[i].id));
+check('Two runs a second apart do not collide', eventsOfRun(asked, tries, new Date(runMoment.getTime() + 1000))[0].id !== journey[0].id);
+check('A response carries its time', journey[0].ms === 1200);
+check('The journal forgets the oldest past its cap', rememberEvents([], Array.from({ length: EVENT_HISTORY + 10 }, () => journey[0]), EVENT_HISTORY).length === EVENT_HISTORY);
+
+// Rejouer les réponses plutôt que d'additionner des totaux.
+const folded = foldEvents(journey);
+check('A right answer counts as one attempt', folded['0:3'].attempts === 1 && folded['0:3'].correct === 1);
+check('A miss counts too', folded['1:2'].attempts === 1 && folded['1:2'].correct === 0);
+check('A cell never played has no line', folded['2:0'] === undefined);
+check('The same response twice counts once', foldEvents(unionEvents(journey, journey))['0:3'].attempts === 1);
+check('A response from the account is folded in', foldEvents(unionEvents([], journey))['0:3'].correct === 1);
+
+const remoteOnlyEvent = { ...journey[0], id: 'autre#0', correct: true };
+check('Two runs the same day still count twice', foldEvents(unionEvents(journey, [remoteOnlyEvent]))['0:3'].attempts === 2);
+check('A day of practice is read from the responses', daysFromEvents(journey).join() === '2026-09-24');
+check('Days are gathered once each', daysFromEvents([...journey, ...journey]).length === 1);
+check('The days of the phone and the account are gathered', unionDays(['2026-09-20'], daysFromEvents(journey)).join() === '2026-09-20,2026-09-24');
+
+// La progression rejouée : ce qui a été travaillé avant le journal est gardé.
+const before = { '5:3': { attempts: 4, correct: 2, totalMs: 5000 } };
+const rebased = rebaseProgress({ ...before, '0:3': { attempts: 9, correct: 9, totalMs: 1 } }, journey, []);
+check('A cell the journal knows is replayed, not added', rebased['0:3'].attempts === 1);
+check('A cell the journal ignores keeps its history', rebased['5:3'].attempts === 4);
+check('A cell only the account knows arrives', rebaseProgress({}, [], journey)['1:2'].attempts === 1);
+
+// Ce qui monte et ce qui redescend : les colonnes du compte.
+const cloudSong: Song = { ...emptySong('Mon chant', 7), updatedAt: '2026-09-24T10:00:00.000Z', lyrics: 'Des paroles' };
+const songLine2 = songRow(cloudSong, 'u1');
+check('A song row names its owner', songLine2.user_id === 'u1' && songLine2.id === cloudSong.id);
+check('A song row carries its key and mode', songLine2.default_key === 7 && songLine2.mode === 'major');
+check('A song row leaves the lyrics behind', !('lyrics' in songLine2));
+check('A song row keeps the date that decides', songLine2.updated_at === '2026-09-24T10:00:00.000Z');
+const cloudSongBack = rowToSong(songLine2, 'Des paroles');
+check('A song comes back whole', cloudSongBack.title === 'Mon chant' && cloudSongBack.defaultKey === 7);
+check('A song comes back with the lyrics of the phone', cloudSongBack.lyrics === 'Des paroles');
+check('A song from an empty row has no sections', rowToSong(songLine2).sections === undefined);
+
+const cloudSet: WorshipSet = {
+  id: 'set-1',
+  date: '2026-09-27',
+  source: 'manual',
+  updatedAt: '2026-09-24T10:00:00.000Z',
+  songs: [
+    { songId: cloudSong.id, key: 7, capo: 2, order: 0 },
+    { songId: 'song-2', key: 0, capo: 0, order: 1 },
+  ],
+};
+const setLine = setRow(cloudSet, 'u1', new Date('2026-09-24T12:00:00.000Z'));
+check('A set row carries its date', setLine.service_date === '2026-09-27');
+check('A set row carries the name of the service', setLine.service_name === null);
+check('A set row is dated by its own change', setLine.updated_at === '2026-09-24T10:00:00.000Z');
+check('A set with no name written yet is dated now', setRow({ ...cloudSet, updatedAt: undefined }, 'u1', new Date('2026-09-24T12:00:00.000Z')).updated_at === '2026-09-24T12:00:00.000Z');
+const setLines = cloudSet.songs.map((entry) => setSongRow(cloudSet.id, entry));
+check('A place in a set is named after the set and the song', setLines[0].id === `set-1:${cloudSong.id}`);
+check('A place in a set keeps its rank', setLines[1].position === 1 && setLines[1].capo === 0);
+const setBack = rowToSet(setLine, [setLines[1], setLines[0]]);
+check('A set comes back in playing order', setBack.songs[0].songId === cloudSong.id);
+check('A set comes back with its keys and capos', setBack.songs[0].capo === 2 && setBack.songs[1].key === 0);
+check('A set with no name reads as unnamed', setBack.serviceName === undefined);
+
+const eventLine = eventRow(journey[0], 'u1');
+check('A response row names its owner and its place', eventLine.user_id === 'u1' && eventLine.string === 0 && eventLine.fret === 3);
+check('A response row keeps the time it took', eventLine.response_ms === 1200);
+check('A response comes back as it left', rowToEvent(eventLine).id === journey[0].id && rowToEvent(eventLine).correct === true);
+
+const profileLine = profileRow(
+  'u1',
+  { firstName: 'Christelle', level: 2, lang: 'fr', notation: 'anglo', hand: 'right', preferredShapes: [7, 0], goalMinutes: 10, reminderHour: 19 },
+  new Date('2026-09-24T10:00:00.000Z'),
+);
+check('A profile carries the first name', profileLine.first_name === 'Christelle');
+check('A profile carries the level and the goal', profileLine.level === 2 && profileLine.daily_goal_minutes === 10);
+const backProfile = settingsFromProfile(profileLine);
+check('The profile gives the settings back', backProfile.firstName === 'Christelle' && backProfile.level === 2);
+check('The profile carries the reminder hour', backProfile.reminderHour === 19);
+check('The profile carries the shapes for the capo', backProfile.preferredShapes?.length === 2);
+check('A level from elsewhere is not copied over', settingsFromProfile({ level: 9 }).level === undefined);
+check('A language nobody speaks is ignored', settingsFromProfile({ locale: 'de' } as never).lang === undefined);
+check('An empty profile changes nothing', Object.keys(settingsFromProfile({})).length === 0);
+
+// La bibliothèque entière, dans les deux sens.
+const cloudLibrary = mergeLibrary(
+  { songs: [cloudSong], sets: [cloudSet] },
+  { songs: [{ ...cloudSong, title: 'Mon chant', updatedAt: '2026-09-01T00:00:00.000Z' }], sets: [] },
+);
+check('The library keeps the newest song', cloudLibrary.songs.length === 1 && cloudLibrary.songs[0].title === 'Mon chant');
+check('The library keeps the sets of the phone', cloudLibrary.sets.length === 1);
+check('An account with nothing in it changes nothing', mergeLibrary({ songs: [cloudSong], sets: [] }, { songs: [], sets: [] }).songs.length === 1);
 
 function report() {
   if (failures) {

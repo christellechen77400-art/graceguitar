@@ -12,6 +12,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { ensureMigrated, STORAGE_KEYS } from '../state/storage';
+import { mergeLibrary } from '../services/merge';
 import { Library, migrateLibrary } from './migrate';
 import {
   MANUAL_SOURCE,
@@ -39,6 +40,14 @@ interface Ctx extends Library {
    * l'inverse — laisserait la bibliothèque dans un état que personne n'a demandé.
    */
   adoptSet: (songs: Song[], set: WorshipSet) => void;
+  /**
+   * La bibliothèque du compte, fusionnée avec celle du téléphone.
+   *
+   * Rien n'est remplacé en bloc : la fusion se fait chant par chant, set par set,
+   * et la version la plus récente l'emporte. Un chant ajouté dans le métro ne
+   * disparaît pas parce qu'un autre a été ajouté sur l'ordinateur.
+   */
+  adoptLibrary: (incoming: Library) => void;
   createSet: (date?: string, serviceName?: string) => WorshipSet;
   updateSet: (id: string, patch: Partial<Omit<WorshipSet, 'id' | 'songs'>>) => void;
   removeSet: (id: string) => void;
@@ -113,9 +122,15 @@ export function SongsProvider({ children }: { children: React.ReactNode }) {
       AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next)).catch(() => {});
       return next;
     };
-    /** Applique un changement aux chants d'un set, en gardant les rangs serrés. */
+    /**
+     * Applique un changement aux chants d'un set, en gardant les rangs serrés.
+     *
+     * Le set touché est redaté : c'est cette date qui tranchera face au compte.
+     */
     const patchSongs = (sets: WorshipSet[], setId: string, change: (songs: SetSong[]) => SetSong[]) =>
-      sets.map((s) => (s.id === setId ? { ...s, songs: renumber(change(s.songs)) } : s));
+      sets.map((s) =>
+        s.id === setId ? { ...s, songs: renumber(change(s.songs)), updatedAt: new Date().toISOString() } : s,
+      );
 
     return {
       ...library,
@@ -143,6 +158,8 @@ export function SongsProvider({ children }: { children: React.ReactNode }) {
           for (const song of incoming) byId.set(song.id, song);
           return save({ songs: [...byId.values()], sets: [...prev.sets, set] });
         }),
+      adoptLibrary: (incoming) =>
+        setLibrary((prev) => save(mergeLibrary(prev, incoming))),
       createSet: (date, serviceName) => {
         const set: WorshipSet = {
           id: newId('set'),
@@ -150,13 +167,19 @@ export function SongsProvider({ children }: { children: React.ReactNode }) {
           serviceName: serviceName?.trim() || undefined,
           source: MANUAL_SOURCE,
           songs: [],
+          updatedAt: new Date().toISOString(),
         };
         setLibrary((prev) => save({ ...prev, sets: [...prev.sets, set] }));
         return set;
       },
       updateSet: (id, patch) =>
         setLibrary((prev) =>
-          save({ ...prev, sets: prev.sets.map((s) => (s.id === id ? { ...s, ...patch } : s)) }),
+          save({
+            ...prev,
+            sets: prev.sets.map((s) =>
+              s.id === id ? { ...s, ...patch, updatedAt: new Date().toISOString() } : s,
+            ),
+          }),
         ),
       removeSet: (id) =>
         setLibrary((prev) => save({ ...prev, sets: prev.sets.filter((s) => s.id !== id) })),

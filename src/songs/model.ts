@@ -60,6 +60,11 @@ export interface SetSong {
 export interface WorshipSet {
   id: string;
   date: string;
+  /**
+   * ISO, comme pour un chant : c'est ce qui décide qui gagne quand le téléphone
+   * et le compte ont chacun modifié le même set.
+   */
+  updatedAt?: string;
   /** Le nom du culte, facultatif : « Culte du soir ». */
   serviceName?: string;
   songs: SetSong[];

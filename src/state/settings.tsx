@@ -3,6 +3,7 @@ import React, { createContext, useContext, useEffect, useMemo, useState } from '
 import { dictionaries, Dict, Lang } from '../i18n';
 import { DEFAULT_PRACTICE, PracticeSettings, ProgressMap, RunRecord } from '../practice/engine';
 import { Level } from '../practice/onboarding';
+import { ProgressEvent } from '../services/merge';
 import { Notation } from '../theory/notes';
 import { DEFAULT_CAPO_SHAPES } from '../theory/worship';
 // Type-only on purpose: `theme.ts` imports `useSettings` from here, and a value
@@ -35,6 +36,15 @@ export interface Settings {
   practiceDays: string[];
   /** The last runs, newest last: the only place a duration is written down. */
   runs: RunRecord[];
+  /**
+   * Les réponses enregistrées, dans l'ordre, pour pouvoir être envoyées au compte.
+   *
+   * Elles ne servent pas à afficher la progression — `progress` le fait déjà, et
+   * plus vite. Elles servent à la reconstruire ailleurs : deux appareils qui
+   * additionneraient chacun leurs totaux se tromperaient, alors que deux listes de
+   * réponses se relisent et donnent le même résultat partout.
+   */
+  events: ProgressEvent[];
   /** Thursday-evening reminder when Sunday's set is still empty. Off by default. */
   reminders: boolean;
   /** A nudge to play, every day at `reminderHour`. Off by default. */
@@ -67,6 +77,7 @@ const DEFAULTS: Settings = {
   progress: {},
   practiceDays: [],
   runs: [],
+  events: [],
   reminders: false,
   dailyReminder: false,
   reminderHour: 19,
@@ -94,6 +105,7 @@ function hydrate(raw: string): Settings {
     progress: stored.progress ?? {},
     practiceDays: stored.practiceDays ?? [],
     runs: stored.runs ?? [],
+    events: Array.isArray(stored.events) ? stored.events : [],
     reminders: stored.reminders ?? false,
     dailyReminder: stored.dailyReminder ?? false,
     reminderHour: stored.reminderHour ?? DEFAULTS.reminderHour,
