@@ -36,8 +36,21 @@ const DIATONIC_QUALITY: Record<Mode, ChordId[]> = {
   minor: ['min', 'dim', 'maj', 'min', 'min', 'maj', 'maj'],
 };
 
-/** Un degré, sa qualité écrite, et une basse facultative : `5/7`, `2m7`. */
-const DEGREE = /^([1-7])([^/]*)(?:\/([1-7]))?$/;
+/**
+ * Un degré, sa qualité écrite, et une basse facultative : `5/7`, `2m7`, `♭7`.
+ *
+ * L'altération est acceptée parce que `chordToNashville` en écrit une dès qu'un
+ * accord sort de la gamme — un ♭VII est courant en louange. Sans elle, un accord
+ * libre saisit dans la grille ne pourrait plus être relu.
+ */
+const DEGREE = /^([♭♯]?)([1-7])([^/]*)(?:\/([♭♯]?)([1-7]))?$/;
+
+/** Le demi-ton d'un degré chiffré, altération comprise. */
+function stepOf(accidental: string, digit: string, mode: Mode): number {
+  const scale = SCALE[mode];
+  const offset = accidental === '♭' ? -1 : accidental === '♯' ? 1 : 0;
+  return scale[Number(digit) - 1] + offset;
+}
 
 /** Les qualités telles qu'on les écrit dans une grille, par accord connu. */
 const SUFFIX: Record<ChordId, string> = {
@@ -77,14 +90,12 @@ function readQuality(suffix: string): ChordId | null {
 export function nashvilleToChord(degree: string, key: number, mode: Mode): NashvilleChord | null {
   const match = DEGREE.exec(degree.trim());
   if (!match) return null;
-  const step = Number(match[1]) - 1;
-  const quality = readQuality(match[2]);
+  const quality = readQuality(match[3]);
   if (quality === null) return null;
 
-  const scale = SCALE[mode];
-  const root = mod12(key + scale[step]);
-  const chord = match[2] ? quality : DIATONIC_QUALITY[mode][step];
-  const bass = match[3] ? mod12(key + scale[Number(match[3]) - 1]) : null;
+  const root = mod12(key + stepOf(match[1], match[2], mode));
+  const chord = match[3] ? quality : DIATONIC_QUALITY[mode][Number(match[2]) - 1];
+  const bass = match[5] ? mod12(key + stepOf(match[4], match[5], mode)) : null;
   return { root, chord, bass };
 }
 
@@ -127,3 +138,38 @@ export function nashvilleLabel(chord: NashvilleChord, key: number, mode: Mode, n
   const name = noteName(chord.root, notation, flats) + SUFFIX[chord.chord];
   return chord.bass === null ? name : `${name}/${noteName(chord.bass, notation, flats)}`;
 }
+
+// ------------------------------------------------------------ la saisie
+
+/** Les pastilles du clavier de saisie, dans l'ordre où on les touche. */
+export const EDITOR_DEGREES = ['1', '2m', '3m', '4', '5', '6m', '7°'];
+
+/** Les sept degrés nus, pour la touche « / » qui pose une basse. */
+export const BASS_DEGREES = ['1', '2', '3', '4', '5', '6', '7'];
+
+/**
+ * La basse d'une mesure : posée, remplacée, ou retirée avec `null`.
+ *
+ * La basse se remplace au lieu de s'ajouter — « 5/7 » puis « 5/2 » donne « 5/2 »,
+ * pas « 5/7/2 ».
+ */
+export function withBass(bar: string, degree: string | null): string {
+  const [base] = bar.split('/');
+  return degree ? `${base}/${degree}` : base;
+}
+
+/**
+ * Un accord écrit en clair — « F♯m7 », « Bb » — ramené au chiffrage de la tonalité.
+ *
+ * C'est la touche « Autre » de la grille : on ne demande pas à quelqu'un qui a
+ * l'accord sous les doigts de le traduire en degrés. Renvoie `null` quand le texte
+ * n'est pas un accord, ou quand la traduction ne se relit pas — mieux vaut refuser
+ * une mesure que d'en écrire une que la fiche ne saura pas afficher.
+ */
+export function freeChordToNashville(text: string, key: number, mode: Mode): string | null {
+  const parsed = parseChordSymbol(text);
+  if (!parsed) return null;
+  const degree = chordToNashville({ root: parsed.root, chord: parsed.chord, bass: parsed.bass }, key, mode);
+  return nashvilleToChord(degree, key, mode) ? degree : null;
+}
+

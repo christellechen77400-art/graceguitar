@@ -5,7 +5,16 @@ import { inferKey, parseChordPro, progression, sectionBars } from '../src/songs/
 import { isComplete, LESSON_BOARDS, LESSON_ORDER, scoreLesson } from '../src/theory/lessons';
 import { lessonsEn } from '../src/theory/lessons.en';
 import { lessonsFr } from '../src/theory/lessons.fr';
-import { chordToNashville, NashvilleChord, nashvilleLabel, nashvilleToChord } from '../src/theory/nashville';
+import {
+  BASS_DEGREES,
+  chordToNashville,
+  EDITOR_DEGREES,
+  freeChordToNashville,
+  NashvilleChord,
+  nashvilleLabel,
+  nashvilleToChord,
+  withBass,
+} from '../src/theory/nashville';
 import { fretToMidi, OPEN_MIDI, voicingToMidi } from '../src/theory/notes';
 import {
   cells,
@@ -26,7 +35,22 @@ import {
   voiceChord,
 } from '../src/practice/engine';
 import { levelFrom, MAX_SCORE, ONBOARDING, practiceFor } from '../src/practice/onboarding';
-import { emptySong, nextSunday, setChords, setSongs, WorshipSet } from '../src/songs/model';
+import { dailySession, rotationFor, CHORDS_EAR, THEORY } from '../src/practice/daily';
+import { homeSections, isSundayMode } from '../src/home/order';
+import { fold, nextSet, recentSongs, searchSongs, sundayNeedsSongs } from '../src/songs/library';
+import {
+  adoptShared,
+  base64UrlEncode,
+  readSharedLink,
+  readSharedPayload,
+  shareLink,
+  shareSet,
+  SHARE_PREFIX,
+} from '../src/songs/share';
+import { emptySong, nextSunday, nextSundays, setChords, setSongs, Song, WorshipSet } from '../src/songs/model';
+import { en } from '../src/i18n/en';
+import { fr } from '../src/i18n/fr';
+import { formatDay, sectionLabel } from '../src/i18n';
 import { songFromChordPro } from '../src/songs/import';
 import { migrateLibrary } from '../src/songs/migrate';
 import { SET_SOURCES } from '../src/songs/sources';
@@ -585,6 +609,272 @@ check(
   practiceFor(1).strings.length < practiceFor(2).strings.length &&
     practiceFor(2).strings.length < practiceFor(3).strings.length,
 );
+
+// --------------------------------------------------------- la saisie de grille
+
+// A chord outside the scale is written with an accidental, and has to read back:
+// a ♭VII typed into the grid would otherwise show as an unreadable bar.
+const flatSeven = chordToNashville({ root: 10, chord: 'maj', bass: null }, 0);
+check('A flattened seventh is written with a flat', flatSeven === '♭7', flatSeven);
+check(
+  'A flattened degree reads back as the chord it names',
+  nashvilleToChord('♭7', 0, 'major')?.root === 10,
+);
+check(
+  'A sharpened degree reads back too',
+  nashvilleToChord('♯4m', 0, 'major')?.root === 6 && nashvilleToChord('♯4m', 0, 'major')?.chord === 'min',
+);
+// In A minor the seventh is G; flattened, it is the F♯ a semitone below.
+check(
+  'A minor seventh is the natural seventh of the key',
+  nashvilleToChord('7', 9, 'minor')?.root === 7,
+  String(nashvilleToChord('7', 9, 'minor')?.root),
+);
+check('A flattened degree of a minor key reads back', nashvilleToChord('♭7', 9, 'minor')?.root === 6);
+
+check('The keyboard offers the degrees a grid uses', EDITOR_DEGREES.join(' ') === '1 2m 3m 4 5 6m 7°');
+check(
+  'Every key of the keyboard is a readable bar',
+  EDITOR_DEGREES.every((degree) => nashvilleToChord(degree, 7, 'major') !== null),
+);
+check('The bass key offers the seven degrees', BASS_DEGREES.length === 7);
+check(
+  'Every bass degree is a readable bar',
+  BASS_DEGREES.every((degree) => nashvilleToChord(withBass('5', degree), 7, 'major') !== null),
+);
+check('A bass is added to a bar', withBass('5', '7') === '5/7');
+check('A bass is removed from a bar', withBass('5/7', null) === '5');
+check('A bass is replaced, not stacked', withBass('5/7', '2') === '5/2');
+check('A bass on a quality keeps the quality', withBass('2m7', '4') === '2m7/4');
+check(
+  'A bar with a bass still reads as its chord',
+  nashvilleToChord(withBass('5', '7'), 7, 'major')?.bass === 6,
+);
+
+check('A free chord becomes its degree', freeChordToNashville('D', 7, 'major') === '5');
+check('A free minor chord keeps its quality', freeChordToNashville('Em7', 7, 'major') === '6m7');
+check('A free chord outside the scale takes an accidental', freeChordToNashville('F', 7, 'major') === '♭7');
+check('A free slash chord keeps its bass', freeChordToNashville('D/F#', 7, 'major') === '5/7');
+check('A free chord ignores case and spaces', freeChordToNashville('  em7 ', 7, 'major') === '6m7');
+check('A word that is not a chord is refused', freeChordToNashville('bonjour', 7, 'major') === null);
+check('An empty entry is refused', freeChordToNashville('   ', 7, 'major') === null);
+check(
+  'Every free chord the reader accepts can be read back',
+  ['C', 'Am', 'F#m7', 'Bb', 'G/B', 'Cadd9', 'Dsus4', 'E7'].every((text) => {
+    const degree = freeChordToNashville(text, 7, 'major');
+    return degree !== null && nashvilleToChord(degree, 7, 'major') !== null;
+  }),
+);
+
+// ------------------------------------------------------------------ les dates
+
+// A set is dated on a Sunday, so the sheet offers the coming ones rather than a
+// text field. 2026-09-24 is a Thursday.
+const thursday = new Date('2026-09-24T12:00:00.000Z');
+check('The next Sunday after a Thursday is the 27th', nextSunday(thursday) === '2026-09-27');
+check('A Sunday is its own next Sunday', nextSunday(new Date('2026-09-27T12:00:00.000Z')) === '2026-09-27');
+check('Four Sundays are offered', nextSundays(4, thursday).length === 4);
+check(
+  'The Sundays are a week apart',
+  nextSundays(4, thursday).join(',') === '2026-09-27,2026-10-04,2026-10-11,2026-10-18',
+  nextSundays(4, thursday).join(','),
+);
+// Crossing a month end and a year end are the two ways a date helper goes wrong.
+check(
+  'Sundays cross a month without slipping',
+  nextSundays(3, new Date('2026-12-29T12:00:00.000Z')).join(',') === '2027-01-03,2027-01-10,2027-01-17',
+  nextSundays(3, new Date('2026-12-29T12:00:00.000Z')).join(','),
+);
+check('A date reads in French', formatDay('2026-09-27', fr) === 'dimanche 27 septembre', formatDay('2026-09-27', fr));
+check('A date reads in English', formatDay('2026-09-27', en) === 'Sunday 27 September', formatDay('2026-09-27', en));
+// A date is a day, not an instant: read in a western timezone without `Date.UTC`
+// it would come back as the 26th.
+check('A date does not slip a day', formatDay('2026-01-01', fr) === 'jeudi 1 janvier', formatDay('2026-01-01', fr));
+check('Something that is not a date is left alone', formatDay('pas-une-date', fr) === 'pas-une-date');
+
+check('A known section is translated', sectionLabel('verse', fr) === 'Couplet');
+check('A section name in English is translated too', sectionLabel('chorus', en) === 'Chorus');
+// A chart imported from elsewhere names its own sections; inventing a translation
+// for a name the app has never heard of would be guessing.
+check('An unknown section keeps its name', sectionLabel('Pre-chorus', fr) === 'Pre-chorus');
+
+// ------------------------------------------------------------------ la séance
+
+const today = dailySession(DEFAULT_PRACTICE, {}, 20260924);
+check('The day has three exercises', today.exercises.length === 3, String(today.exercises.length));
+check(
+  'Each exercise has ten questions',
+  today.exercises.every((e) => e.questions.length === 10),
+  today.exercises.map((e) => `${e.id}:${e.questions.length}`).join(' '),
+);
+check('The first exercise is the neck drill', today.exercises[0].id === 'nameNote');
+check('The session counts its questions', today.questionCount === 30, String(today.questionCount));
+// Thirty questions at about fourteen seconds each.
+check('The session announces a length', today.minutes === 7, String(today.minutes));
+check(
+  'The same day gives the same session',
+  dailySession(DEFAULT_PRACTICE, {}, 20260924).exercises[1].id === today.exercises[1].id,
+);
+check('One exercise of each terrain', rotationFor(0)[0] !== rotationFor(0)[1]);
+check(
+  'The rotation covers both lists',
+  [0, 1, 2, 3, 4, 5].every((seed) => {
+    const [a, b] = rotationFor(seed);
+    return CHORDS_EAR.includes(a) && THEORY.includes(b);
+  }),
+  [0, 1, 2, 3, 4, 5].map((s) => rotationFor(s).join('+')).join(' '),
+);
+check(
+  'Two days in a row do not give the same pair',
+  [0, 1, 2, 3, 4].every((seed) => rotationFor(seed).join() !== rotationFor(seed + 1).join()),
+);
+// A narrow drill only has so many cells: the session asks what it can and says so
+// with a smaller exercise rather than a block that never fills.
+const smallDaily = dailySession(practiceFor(1), {}, 1);
+check('A narrow drill asks only what it can', smallDaily.exercises[0].questions.length <= 10);
+
+// ------------------------------------------------------------------ l'accueil
+
+check('Monday opens on the session', homeSections(1, true)[0] === 'todaySession');
+check('Wednesday opens on the session', homeSections(3, true)[0] === 'todaySession');
+check('Thursday opens on the set', homeSections(4, true)[0] === 'sundaySet');
+check('Saturday opens on the set', homeSections(6, true)[0] === 'sundaySet');
+check('Sunday opens on the set', homeSections(0, true)[0] === 'sundaySet');
+check('The session follows the set on Thursday', homeSections(4, true)[1] === 'todaySession');
+check(
+  'The last two cards never move',
+  [0, 1, 2, 3, 4, 5, 6].every((day) => {
+    const order = homeSections(day, true);
+    return order[3] === 'progress' && order[4] === 'weeklyChallenge';
+  }),
+);
+check('Every order has five cards', homeSections(2, true).length === 5);
+check('No set sends the card last', homeSections(4, false)[2] === 'sundaySet', homeSections(4, false).join(','));
+check('Sunday is the day you play', isSundayMode(0) && !isSundayMode(6));
+
+// ------------------------------------------------------- la bibliothèque
+
+const songA: Song = { ...emptySong('Gloire à Dieu', 7), updatedAt: '2026-09-01T00:00:00.000Z' };
+const songB: Song = { ...emptySong('À toi la gloire', 0), updatedAt: '2026-09-20T00:00:00.000Z' };
+const songC: Song = { ...emptySong('Noël', 2), updatedAt: '2026-09-10T00:00:00.000Z' };
+const library: Song[] = [songA, songB, songC];
+
+check('A search ignores accents', searchSongs(library, 'noel')[0].title === 'Noël');
+check('A search ignores case', searchSongs(library, 'GLOIRE')[0].title === 'Gloire à Dieu');
+check('A title that starts with the query comes first', searchSongs(library, 'gloire')[0].title === 'Gloire à Dieu');
+check('A search finds what is inside a title', searchSongs(library, 'toi').length === 1);
+check('A query is trimmed before it is matched', searchSongs(library, '  noel  ')[0].title === 'Noël');
+check('A search with nothing typed lists the recent ones', searchSongs(library, '')[0].title === 'À toi la gloire');
+check('A search can find nothing', searchSongs(library, 'zzz').length === 0);
+check('A search is capped', searchSongs(library, '', 1).length === 1);
+check(
+  'The recent songs come newest first',
+  recentSongs(library, 2).map((s) => s.title).join(',') === 'À toi la gloire,Noël',
+);
+check('The recent list is capped', recentSongs(library, 5).length === 3);
+check('Folding keeps a plain title as it is', fold('Gloire à Dieu') === 'gloire a dieu');
+
+const past: WorshipSet = { id: 'p', date: '2026-09-20', source: 'manual', songs: [] };
+const soon: WorshipSet = { id: 'n', date: '2026-09-27', source: 'manual', songs: [] };
+const later: WorshipSet = { id: 'l', date: '2026-10-04', source: 'manual', songs: [] };
+check('The next set is the coming one', nextSet([past, later, soon], '2026-09-24')?.id === 'n');
+check('A set dated today is still to come', nextSet([past, soon], '2026-09-27')?.id === 'n');
+check('With nothing to come, the last one is shown', nextSet([past], '2026-09-24')?.id === 'p');
+check('No sets at all is no set', nextSet([], '2026-09-24') === null);
+check('A Sunday with no set needs songs', sundayNeedsSongs([], '2026-09-24', '2026-09-27'));
+check(
+  'A Sunday with a set of songs needs nothing',
+  !sundayNeedsSongs([{ ...soon, songs: [{ songId: 'x', key: 7, capo: 0, order: 0 }] }], '2026-09-24', '2026-09-27'),
+);
+
+// ------------------------------------------------------------ le partage
+
+const shareable: WorshipSet = {
+  id: 'set-1',
+  date: '2026-09-27',
+  serviceName: 'Culte du soir',
+  source: 'manual',
+  songs: [
+    { songId: songA.id, key: 7, capo: 2, order: 0 },
+    { songId: songB.id, key: 2, capo: 0, order: 1 },
+  ],
+};
+const withGrids: Song = {
+  ...songA,
+  sections: [{ name: 'verse', bars: ['1', '5', '6m', '4'] }],
+  lyrics: 'Paroles secrètes',
+};
+const payload = shareSet(shareable, [withGrids, songB], 'Christelle');
+check('A shared set keeps its date', payload.d === '2026-09-27');
+check('A shared set keeps its service name', payload.n === 'Culte du soir');
+check('A shared set names who sent it', payload.f === 'Christelle');
+check('A shared set carries both songs', payload.songs.length === 2);
+check('A shared song carries the key of the day', payload.songs[1].k === 2);
+check('A shared song carries its capo', payload.songs[0].c === 2);
+check(
+  'A shared grid travels as Nashville numbers',
+  payload.songs[0].s?.join('|') === 'verse:1 5 6m 4',
+  payload.songs[0].s?.join('|'),
+);
+// The whole point of keeping lyrics in their own field: they must not be in the link.
+check('A shared set never carries the lyrics', !JSON.stringify(payload).includes('Paroles secrètes'));
+check('A shared song with no grid has no grid field', payload.songs[1].s === undefined);
+check('A song the library lost is dropped from the set', shareSet(shareable, [songB]).songs.length === 1);
+check('A set with no name and no sender has neither field', !('n' in shareSet(past, [songB])) && !('n' in shareSet(past, [songB], '  ')));
+
+const link = shareLink(payload);
+check('The link is prefixed with the app scheme', link.startsWith('graceguitar://import?d='), link.slice(0, 30));
+check('The link holds nothing that needs escaping', /^[A-Za-z0-9\-_]+$/.test(link.slice(SHARE_PREFIX.length)));
+const readBack = readSharedLink(link);
+check('The link reads back', readBack !== null);
+check('The link keeps the date', readBack?.d === '2026-09-27');
+check('The link keeps the service name', readBack?.n === 'Culte du soir');
+check('The link keeps who sent it', readBack?.f === 'Christelle');
+check('The link keeps the songs', readBack?.songs.length === 2);
+check('The link keeps the grid', readBack?.songs[0].s?.join('|') === 'verse:1 5 6m 4');
+check('The link keeps the capo', readBack?.songs[0].c === 2);
+check('Accents survive the round trip', readBack?.songs[0].t === 'Gloire à Dieu', readBack?.songs[0].t);
+check('A truncated link reads as nothing', readSharedLink(link.slice(0, link.length - 12)) === null);
+check('A link that is not a set reads as nothing', readSharedLink('https://example.com') === null);
+check('A payload that is not JSON reads as nothing', readSharedPayload('pas-du-json') === null);
+check('A set of zero songs is not a set', readSharedPayload(base64UrlEncode('{"v":1,"d":"2026-09-27","songs":[]}')) === null);
+check(
+  'A set with no date is not a set',
+  readSharedPayload(base64UrlEncode('{"v":1,"songs":[{"t":"x","k":7,"m":"major","c":0}]}')) === null,
+);
+// A received set is written by someone else: a key out of range is clamped rather
+// than trusted, because it would otherwise reach the transpose maths.
+check(
+  'An out-of-range key is brought back into twelve',
+  readSharedPayload(
+    base64UrlEncode('{"v":1,"d":"2026-09-27","songs":[{"t":"x","k":-1,"m":"nimporte","c":-4}]}'),
+  )?.songs[0].k === 11,
+);
+check(
+  'A missing mode falls back to major',
+  readSharedPayload(base64UrlEncode('{"v":1,"d":"2026-09-27","songs":[{"t":"x","k":7,"m":"?"}]}'))?.songs[0].m ===
+    'major',
+);
+// A shared set is small enough to scan: that is why the link is not compressed.
+check('A two-song link stays scannable', link.length < 400, String(link.length));
+
+let shareIds = 0;
+const adopted = adoptShared(readBack!, [songB], 'shared', (prefix) => `${prefix}-${++shareIds}`);
+check('A received set keeps the songs it can reuse', adopted.songs.length === 2);
+check('A shared set becomes a local set', adopted.set.songs.length === 2);
+check('A received set is marked as received', adopted.set.source === 'shared');
+check('A received set keeps its date', adopted.set.date === '2026-09-27');
+check('A received set is ordered as it arrived', adopted.set.songs.map((e) => e.order).join(',') === '0,1');
+check(
+  'A song already known is kept, not duplicated',
+  adopted.songs.some((s) => s.id === songB.id),
+);
+check('The known song takes the incoming key', adopted.songs.find((s) => s.id === songB.id)?.defaultKey === 2);
+check(
+  'A new song arrives with its grid',
+  adopted.songs.find((s) => s.title === 'Gloire à Dieu')?.sections?.[0].bars.join(' ') === '1 5 6m 4',
+);
+check('A received set names who sent it', adopted.set.serviceName === 'Culte du soir');
 
 function report() {
   if (failures) {

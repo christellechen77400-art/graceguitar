@@ -32,11 +32,18 @@ interface Ctx extends Library {
   addSong: (song: Song) => void;
   updateSong: (id: string, patch: Partial<Omit<Song, 'id'>>) => void;
   removeSong: (id: string) => void;
+  /**
+   * Un set reçu : ses chants et lui-même, en une seule écriture.
+   *
+   * En un bloc parce qu'un set à moitié importé — les chants sans le set, ou
+   * l'inverse — laisserait la bibliothèque dans un état que personne n'a demandé.
+   */
+  adoptSet: (songs: Song[], set: WorshipSet) => void;
   createSet: (date?: string, serviceName?: string) => WorshipSet;
   updateSet: (id: string, patch: Partial<Omit<WorshipSet, 'id' | 'songs'>>) => void;
   removeSet: (id: string) => void;
   /** Ajoute un chant au set, à la fin, dans sa tonalité habituelle. */
-  addToSet: (setId: string, songId: string) => void;
+  addToSet: (setId: string, songId: string, capo?: number) => void;
   removeFromSet: (setId: string, songId: string) => void;
   /** Déplace un chant d'un rang, ou ne fait rien s'il sort du set. */
   moveInSet: (setId: string, songId: string, delta: number) => void;
@@ -130,6 +137,12 @@ export function SongsProvider({ children }: { children: React.ReactNode }) {
             sets: prev.sets.map((s) => ({ ...s, songs: renumber(s.songs.filter((e) => e.songId !== id)) })),
           }),
         ),
+      adoptSet: (incoming, set) =>
+        setLibrary((prev) => {
+          const byId = new Map(prev.songs.map((s) => [s.id, s]));
+          for (const song of incoming) byId.set(song.id, song);
+          return save({ songs: [...byId.values()], sets: [...prev.sets, set] });
+        }),
       createSet: (date, serviceName) => {
         const set: WorshipSet = {
           id: newId('set'),
@@ -147,7 +160,7 @@ export function SongsProvider({ children }: { children: React.ReactNode }) {
         ),
       removeSet: (id) =>
         setLibrary((prev) => save({ ...prev, sets: prev.sets.filter((s) => s.id !== id) })),
-      addToSet: (setId, songId) =>
+      addToSet: (setId, songId, capo = 0) =>
         setLibrary((prev) => {
           const song = prev.songs.find((s) => s.id === songId);
           if (!song) return prev;
@@ -159,7 +172,7 @@ export function SongsProvider({ children }: { children: React.ReactNode }) {
               if (songs.some((e) => e.songId === songId)) return songs;
               return [
                 ...songs,
-                { songId, key: song.defaultKey, capo: 0, order: songs.length },
+                { songId, key: song.defaultKey, capo, order: songs.length },
               ];
             }),
           });

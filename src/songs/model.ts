@@ -93,6 +93,22 @@ export function nextSunday(now = new Date()): string {
   return date.toISOString().slice(0, 10);
 }
 
+/**
+ * Les prochains dimanches, le premier étant celui qui vient.
+ *
+ * Un set se date presque toujours un dimanche : les proposer évite d'écrire une
+ * date à la main, et c'est aussi ce qui permet de choisir « dimanche prochain »
+ * plutôt que « dans trois semaines » sans compter.
+ */
+export function nextSundays(count: number, now = new Date()): string[] {
+  const first = new Date(`${nextSunday(now)}T00:00:00.000Z`);
+  return Array.from({ length: count }, (_, index) => {
+    const date = new Date(first);
+    date.setUTCDate(first.getUTCDate() + index * 7);
+    return date.toISOString().slice(0, 10);
+  });
+}
+
 /** Un chant réduit à sa tonalité, sans grille, à remplir plus tard. */
 export function emptySong(title: string, defaultKey: number, mode: Mode = 'major', source: SongSource = 'manual'): Song {
   return { id: newId('song'), title, defaultKey, mode, source, updatedAt: new Date().toISOString() };
