@@ -425,9 +425,12 @@ const makeStyles = ({ c, type, space, radius, size }: Theme) =>
     },
     dotRingToday: { borderColor: c.accent },
     dot: {
-      width: 32,
-      height: 32,
+      // Une case du calendrier : ronde tant que le chiffre tient, et qui grandit
+      // avec lui. Une taille fixe rognerait le jour au texte XL.
+      minWidth: 32,
+      minHeight: 32,
       borderRadius: 16,
+      paddingHorizontal: space.xs,
       alignItems: 'center',
       justifyContent: 'center',
       borderWidth: 1,

@@ -59,12 +59,23 @@ export function Fretboard({ markers, muted = [], onPressCell, focusFret }: Props
     onPressCell?.(string, fret);
   };
 
-  const cellLabel = (string: number, fret: number) =>
-    t.a11y.cell(
+  /**
+   * Ce qu'annonce une case : la corde, la case, la note, et son rôle.
+   *
+   * Le rôle vient du marqueur posé là, s'il y en a un — « fondamentale » ne se
+   * déduit pas de la note, il se lit sur le manche, et un lecteur d'écran n'a
+   * que ce qu'on lui dit.
+   */
+  const roleAt = new Map(markers.map((m) => [`${m.string}:${m.fret}`, m.kind]));
+  const cellLabel = (string: number, fret: number) => {
+    const kind = roleAt.get(`${string}:${fret}`);
+    return t.a11y.cell(
       noteName(STANDARD_TUNING[string], notation, false),
       fret,
       noteName(pcAt(string, fret), notation, false),
+      kind ? t.a11y.roles[kind] : undefined,
     );
+  };
 
   const boardH = GAP * (STRING_COUNT - 1);
   const width = NUT_W + FRET_COUNT * FRET_W + 12;

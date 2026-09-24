@@ -1,5 +1,6 @@
 import React from 'react';
 import { Pressable, ScrollView, StyleSheet, Switch, Text, View, ViewStyle } from 'react-native';
+import { tapFeedback } from '../../haptics';
 import { radius, size, Theme, useStyles, useTheme } from '../../theme';
 
 /**
@@ -22,7 +23,13 @@ export function Chip({
   const s = useStyles(makeStyles);
   return (
     <Pressable
-      onPress={onPress}
+      onPress={() => {
+        // Une pastille est un choix : la tonalité, un degré, une forme de capo.
+        // Le retour est ici plutôt que dans chaque écran, parce que c'est le
+        // même geste partout.
+        tapFeedback();
+        onPress();
+      }}
       disabled={disabled}
       accessibilityRole="button"
       accessibilityState={{ selected, disabled }}
@@ -65,7 +72,10 @@ export function Segmented<T extends string>({
         return (
           <Pressable
             key={o.value}
-            onPress={() => onChange(o.value)}
+            onPress={() => {
+              if (!active) tapFeedback();
+              onChange(o.value);
+            }}
             accessibilityRole="button"
             accessibilityState={{ selected: active }}
             style={[s.segment, active && s.segmentActive]}

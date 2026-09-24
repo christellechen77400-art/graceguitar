@@ -107,6 +107,7 @@ import {
   songRow,
 } from '../src/services/cloudRows';
 import { isEmail, MIN_PASSWORD, passwordStrength } from '../src/services/password';
+import { initialsOf } from '../src/services/account';
 import { voicingTab, generateVoicings } from '../src/theory/voicings';
 import { CAPO_SHAPES, capoOptions, DEFAULT_CAPO_SHAPES, probableChords, suggestCapo } from '../src/theory/worship';
 
@@ -1362,6 +1363,20 @@ const cloudLibrary = mergeLibrary(
 check('The library keeps the newest song', cloudLibrary.songs.length === 1 && cloudLibrary.songs[0].title === 'Mon chant');
 check('The library keeps the sets of the phone', cloudLibrary.sets.length === 1);
 check('An account with nothing in it changes nothing', mergeLibrary({ songs: [cloudSong], sets: [] }, { songs: [], sets: [] }).songs.length === 1);
+
+// L'accessibilité : ce qu'un lecteur d'écran annonce, et les deux lettres du compte.
+check('A cell is announced with its string, its fret and its note', fr.a11y.cell('La', 3, 'Do') === 'Corde de La, case 3, Do', fr.a11y.cell('La', 3, 'Do'));
+check('An open string is announced as open', fr.a11y.cell('Mi', 0, 'Mi').includes('à vide'));
+check('A root is announced as the root', fr.a11y.cell('La', 3, 'Do', fr.a11y.roles.root).endsWith(', fondamentale'));
+check('A chord tone is announced as one', fr.a11y.cell('La', 3, 'Do', fr.a11y.roles.chord).endsWith(', note de l’accord'));
+check('The English cell says it the English way', en.a11y.cell('A', 3, 'C', en.a11y.roles.root) === 'A string, fret 3, C, root');
+check('Every kind of marker has something to say', (['root', 'tone', 'chord', 'ghost'] as const).every((kind) => !!fr.a11y.roles[kind] && !!en.a11y.roles[kind]));
+
+check('Initials come from the first name', initialsOf('Christelle', 'c@example.com') === 'CH');
+check('Two first names give two initials', initialsOf('Marie Claire', 'mc@example.com') === 'MC');
+check('With no first name, the address gives them', initialsOf('', 'christelle@example.com') === 'CH');
+check('A dotted address gives them too', initialsOf('', 'marie.claire@example.com') === 'MC');
+check('A single-letter address still gives something', initialsOf('', 'x@example.com') === 'X');
 
 function report() {
   if (failures) {

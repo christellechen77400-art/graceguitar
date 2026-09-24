@@ -162,8 +162,22 @@ export const fr = {
   soundOn: 'Couper le son',
   soundOff: 'Rétablir le son',
   a11y: {
-    cell: (stringName: string, fret: number, note: string) =>
-      `${stringName}, ${fret === 0 ? 'à vide' : `case ${fret}`} : ${note}`,
+    /**
+     * Ce qu'un lecteur d'écran annonce sur une case du manche.
+     *
+     * « Corde de La, case 3, C, fondamentale » : la corde, la case, la note, et
+     * ce que la note représente sur ce manche-là. Sans le dernier mot, une
+     * fondamentale et un degré quelconque s'annoncent pareil, et la seule chose
+     * qui les distingue à l'écran — la couleur — n'existe pas au casque.
+     */
+    cell: (stringName: string, fret: number, note: string, role?: string) =>
+      `Corde de ${stringName}, ${fret === 0 ? 'à vide' : `case ${fret}`}, ${note}${role ? `, ${role}` : ''}`,
+    roles: {
+      root: 'fondamentale',
+      tone: 'degré de la gamme',
+      chord: 'note de l’accord',
+      ghost: 'pas encore travaillée',
+    },
   },
   practice: {
     title: 'Exercices',

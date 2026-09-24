@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNotePlayer } from '../audio/useNotePlayer';
 import { Fretboard, Marker } from '../components/Fretboard';
 import { Chip, ChipRow, PrimaryButton, SecondaryButton, useTextStyles } from '../components/ui';
+import { rightFeedback, wrongFeedback } from '../haptics';
 import {
   Attempt,
   Question,
@@ -113,6 +114,11 @@ export function RunScreen({ questions, onExit }: { questions: Question[]; onExit
 
   const commit = (correct: boolean) => {
     const attempts = [...run.attempts, { correct, ms: Date.now() - run.shownAt }];
+    // La bonne et la mauvaise réponse ne se ressemblent pas au son, et sur un
+    // manche on regarde ses doigts plutôt que l'écran : la vibration dit ce que
+    // l'écran dirait si on levait les yeux.
+    if (correct) rightFeedback();
+    else wrongFeedback();
     setOutcome(correct);
     setRun((r) => ({ ...r, attempts }));
     // Let the answer be seen before the next question replaces it. A miss needs

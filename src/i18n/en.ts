@@ -165,8 +165,14 @@ export const en: Dict = {
   soundOn: 'Turn sound off',
   soundOff: 'Turn sound on',
   a11y: {
-    cell: (stringName: string, fret: number, note: string) =>
-      `${stringName} string, ${fret === 0 ? 'open' : `fret ${fret}`}: ${note}`,
+    cell: (stringName: string, fret: number, note: string, role?: string) =>
+      `${stringName} string, ${fret === 0 ? 'open' : `fret ${fret}`}, ${note}${role ? `, ${role}` : ''}`,
+    roles: {
+      root: 'root',
+      tone: 'scale degree',
+      chord: 'chord tone',
+      ghost: 'not practised yet',
+    },
   },
   practice: {
     title: 'Practice',
