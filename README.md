@@ -1,6 +1,6 @@
 # GraceGuitar
 
-Guitare de louange — le manche, les accords, les chants du dimanche.
+Guitare de louange — le manche, les accords, les exercices, les chants du dimanche.
 FR / EN.
 
 ```bash
@@ -14,11 +14,23 @@ npx expo start
 | Commande | Rôle |
 |---|---|
 | `npm run typecheck` | Vérification TypeScript |
-| `npm run test:theory` | Vérifie le moteur (théorie, exercices, chants, migration) |
+| `npm run test:theory` | Vérifie tout ce qui est pur (théorie, exercices, chants, migration, compte) |
 | `npm run gen:sounds` | Régénère les échantillons de guitare dans `assets/sounds/` |
 | `npm run gen:icon` | Régénère l'icône provisoire (nécessite Python et Pillow) |
 
 Voir `CLAUDE.md` pour l'architecture et la suite du développement.
+
+## Ce qu'il faut savoir avant de toucher au code
+
+- **Aucune logique musicale dans les écrans.** Elle vit dans `src/theory/` (ou `src/practice/`,
+  `src/songs/`, `src/services/`) et se vérifie dans `scripts/theory-check.ts`.
+- **Toute chaîne visible passe par `t`**, en français et en anglais. Les deux dictionnaires ont
+  exactement les mêmes clés.
+- **La palette et la typographie sont dans `src/theme.ts`**, et nulle part ailleurs : une couleur
+  écrite dans un écran ne suivra pas le mode sombre.
+- **Les paroles de chants ne quittent jamais l'appareil** — ni dans un partage, ni en base.
+- `npm run typecheck` et `npm run test:theory` passent avant chaque commit.
+
 
 ## Compte et synchronisation
 
