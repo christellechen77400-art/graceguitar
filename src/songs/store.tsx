@@ -1,8 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { ensureMigrated, STORAGE_KEYS } from '../state/storage';
 import { MANUAL_SOURCE, newId, nextSunday, Song, songFromChordPro, SongSet } from './model';
 
-const STORAGE_KEY = 'kinnor.songs.v1';
+const STORAGE_KEY = STORAGE_KEYS.songs;
 
 interface Library {
   songs: Song[];
@@ -46,7 +47,8 @@ export function SongsProvider({ children }: { children: React.ReactNode }) {
   const [library, setLibrary] = useState<Library>(EMPTY);
 
   useEffect(() => {
-    AsyncStorage.getItem(STORAGE_KEY)
+    ensureMigrated()
+      .then(() => AsyncStorage.getItem(STORAGE_KEY))
       .then((raw) => {
         if (raw) setLibrary(hydrate(raw));
       })

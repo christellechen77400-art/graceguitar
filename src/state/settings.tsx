@@ -4,6 +4,7 @@ import { dictionaries, Dict, Lang } from '../i18n';
 import { DEFAULT_PRACTICE, PracticeSettings, ProgressMap } from '../practice/engine';
 import { Level } from '../practice/onboarding';
 import { Notation } from '../theory/notes';
+import { ensureMigrated, STORAGE_KEYS } from './storage';
 
 export type DisplayMode = 'clean' | 'notes' | 'intervals';
 
@@ -37,7 +38,7 @@ const DEFAULTS: Settings = {
   onboarded: false,
   level: 2,
 };
-const STORAGE_KEY = 'kinnor.settings.v1';
+const STORAGE_KEY = STORAGE_KEYS.settings;
 
 /**
  * Merges a stored blob over the defaults.
@@ -78,7 +79,10 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    AsyncStorage.getItem(STORAGE_KEY)
+    // Reading before the rename migration has run would find nothing under the
+    // new prefix and look like a first launch.
+    ensureMigrated()
+      .then(() => AsyncStorage.getItem(STORAGE_KEY))
       .then((raw) => {
         if (raw) setSettings(hydrate(raw));
       })

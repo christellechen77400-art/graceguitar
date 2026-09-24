@@ -1,5 +1,5 @@
 export const fr = {
-  appName: 'Kinnor',
+  appName: 'GraceGuitar',
   tagline: 'Le manche, pour la louange',
   tabs: { scales: 'Gammes', chords: 'Accords', caged: 'CAGED', practice: 'Exercices', worship: 'Louange' },
   key: 'Tonalité',

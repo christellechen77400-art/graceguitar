@@ -1,17 +1,19 @@
 {
   "expo": {
-    "name": "Kinnor",
-    "slug": "kinnor",
+    "name": "GraceGuitar",
+    "slug": "graceguitar",
+    "scheme": "graceguitar",
     "version": "0.1.0",
     "orientation": "default",
-    "userInterfaceStyle": "dark",
-    "backgroundColor": "#17142B",
+    "userInterfaceStyle": "automatic",
+    "backgroundColor": "#F5EFE3",
+    "icon": "./assets/icon.png",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.example.kinnor"
+      "bundleIdentifier": "com.renoo.graceguitar"
     },
     "android": {
-      "package": "com.example.kinnor"
+      "package": "com.renoo.graceguitar"
     },
     "plugins": [
       [
@@ -19,7 +21,8 @@
         {
           "microphonePermission": false
         }
-      ]
+      ],
+      "expo-font"
     ]
   }
 }

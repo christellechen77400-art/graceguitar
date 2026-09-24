@@ -1,8 +1,9 @@
-# Kinnor — guide pour Claude Code
+# GraceGuitar — guide pour Claude Code
 
-Kinnor est une app mobile (iOS / Android, Expo + React Native + TypeScript) de visualisation du manche
-de guitare, pensée pour les guitaristes de louange francophones. Interface FR par défaut, bascule EN,
-notation des notes au choix (C D E ou Do Ré Mi).
+GraceGuitar (« Guitare de louange ») est une app mobile (iOS / Android, Expo + React Native +
+TypeScript) pour les guitaristes de louange francophones : le manche, les accords, les exercices,
+la théorie, et les chants du dimanche. Interface FR par défaut, bascule EN, notation des notes au
+choix (C D E ou Do Ré Mi).
 
 ## Commandes
 - `npm install` puis `npx expo install --fix` (aligne les versions sur le SDK Expo installé)

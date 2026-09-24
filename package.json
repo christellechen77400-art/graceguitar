@@ -1,5 +1,5 @@
 {
-  "name": "kinnor",
+  "name": "graceguitar",
   "version": "0.1.0",
   "private": true,
   "main": "index.ts",
@@ -10,20 +10,24 @@
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
     "test:theory": "tsx scripts/theory-check.ts",
-    "gen:sounds": "tsx scripts/gen-sounds.ts"
+    "gen:sounds": "tsx scripts/gen-sounds.ts",
+    "gen:icon": "python3 scripts/gen-icon.py"
   },
   "dependencies": {
+    "@expo-google-fonts/newsreader": "^0.4.1",
     "@expo/metro-runtime": "~4.0.0",
     "@react-native-async-storage/async-storage": "1.23.1",
     "expo": "~52.0.0",
     "expo-asset": "~11.0.1",
     "expo-audio": "~0.3.5",
+    "expo-font": "~13.0.4",
     "expo-status-bar": "~2.0.0",
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "react-native": "0.76.9",
     "react-native-svg": "15.8.0",
-    "react-native-web": "~0.19.13"
+    "react-native-web": "~0.19.13",
+    "undefined": "/tmp/npm-cache"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

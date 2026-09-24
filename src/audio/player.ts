@@ -17,7 +17,7 @@ let volume = 1;
 
 /**
  * Routes playback so a guitar app behaves like an instrument: it must be heard
- * with the ringer switch off. Recording stays disabled — Kinnor never opens the
+ * with the ringer switch off. Recording stays disabled — GraceGuitar never opens the
  * microphone, and the config plugin is set the same way.
  */
 let ready: Promise<void> | null = null;

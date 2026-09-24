@@ -27,6 +27,7 @@ import {
 import { levelFrom, MAX_SCORE, ONBOARDING, practiceFor } from '../src/practice/onboarding';
 import { emptySong, nextSunday, setChords, setSongs, songFromChordPro, songKey } from '../src/songs/model';
 import { SET_SOURCES } from '../src/songs/sources';
+import { migrateLegacyKeys, migrationPlan, STORAGE_KEYS } from '../src/state/storage';
 import { voicingTab, generateVoicings } from '../src/theory/voicings';
 import { capoOptions } from '../src/theory/worship';
 
@@ -330,16 +331,68 @@ check(
 );
 check('Sunday counts as the next Sunday', nextSunday(new Date('2026-09-27T00:00:00Z')) === '2026-09-27');
 
-// The sources that are only planned must fail loudly, not return an empty list.
-// Checked last, because the answer only arrives on a later tick.
+// ------------------------------------------------------------- the rename move
+
+check(
+  'A legacy key is planned for the new prefix',
+  migrationPlan(['kinnor.settings.v1'])[0]?.to === 'graceguitar.settings.v1',
+);
+check(
+  'A key already under the new prefix is left alone',
+  migrationPlan(['graceguitar.settings.v1']).length === 0,
+);
+check(
+  'The plan copies only what the new prefix does not already have',
+  migrationPlan(['kinnor.settings.v1', 'graceguitar.songs.v1', 'kinnor.songs.v1']).every(
+    (e) => e.copy === (e.from === 'kinnor.settings.v1'),
+  ),
+);
+check('An empty store plans nothing', migrationPlan([]).length === 0);
+
+/** A stand-in for AsyncStorage, so the migration can be run without a device. */
+function fakeStore(entries: Record<string, string>) {
+  const data = new Map(Object.entries(entries));
+  return {
+    data,
+    getAllKeys: async () => Array.from(data.keys()),
+    multiGet: async (keys: string[]) => keys.map((k) => [k, data.get(k) ?? null] as const),
+    multiSet: async (pairs: [string, string][]) => {
+      pairs.forEach(([k, v]) => data.set(k, v));
+    },
+    multiRemove: async (keys: string[]) => {
+      keys.forEach((k) => data.delete(k));
+    },
+  };
+}
+
+// The sources that are only planned must fail loudly, not return an empty list,
+// and the migration is asynchronous too. Both are checked last, because the
+// answers only arrive on a later tick.
 check('Only the hand-written source is usable', SET_SOURCES.filter((s) => s.available).length === 1);
 const planned = SET_SOURCES.filter((s) => !s.available);
-Promise.allSettled(planned.map((s) => s.fetchSets())).then((results) => {
-  results.forEach((result, i) => {
-    check(`${planned[i].id} refuses rather than pretending`, result.status === 'rejected');
-  });
-  report();
-});
+
+const carried = fakeStore({ 'kinnor.settings.v1': '{"lang":"fr"}', 'kinnor.songs.v1': '{"songs":[]}' });
+const alreadyThere = fakeStore({ 'kinnor.settings.v1': '{"lang":"fr"}', 'graceguitar.settings.v1': '{"lang":"en"}' });
+
+Promise.all([...planned.map((s) => s.fetchSets().then(() => 'resolved', () => 'rejected')), migrateLegacyKeys(carried), migrateLegacyKeys(alreadyThere)]).then(
+  (results) => {
+    results.slice(0, planned.length).forEach((status, i) => {
+      check(`${planned[i].id} refuses rather than pretending`, status === 'rejected');
+    });
+
+    check('The old value is carried to the new key', carried.data.get('graceguitar.settings.v1') === '{"lang":"fr"}');
+    check('The second old key is carried too', carried.data.get('graceguitar.songs.v1') === '{"songs":[]}');
+    check('The old keys are gone once carried', !carried.data.has('kinnor.settings.v1'));
+    check(
+      'A legacy key never overwrites the live one',
+      alreadyThere.data.get('graceguitar.settings.v1') === '{"lang":"en"}',
+    );
+    check('That stale legacy key is removed all the same', !alreadyThere.data.has('kinnor.settings.v1'));
+    check('The renamed keys are the ones the app reads', STORAGE_KEYS.settings === 'graceguitar.settings.v1');
+
+    report();
+  },
+);
 
 // ------------------------------------------------------------------ the course
 

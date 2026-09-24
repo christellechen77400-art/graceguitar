@@ -1,7 +1,7 @@
 import type { Dict } from './fr';
 
 export const en: Dict = {
-  appName: 'Kinnor',
+  appName: 'GraceGuitar',
   tagline: 'The fretboard, for worship',
   tabs: { scales: 'Scales', chords: 'Chords', caged: 'CAGED', practice: 'Practice', worship: 'Worship' },
   key: 'Key',
