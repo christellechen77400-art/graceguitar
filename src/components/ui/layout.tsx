@@ -16,6 +16,7 @@ import { SCREEN_BOTTOM, size, Theme, useStyles } from '../../theme';
  */
 export function Screen({
   title,
+  titleRight,
   action,
   header,
   tab,
@@ -23,6 +24,8 @@ export function Screen({
   children,
 }: {
   title?: string;
+  /** Un contrôle posé à droite du titre : la pastille de série des Exercices. */
+  titleRight?: React.ReactNode;
   /** Une action texte, à droite du titre. */
   action?: { label: string; onPress: () => void };
   /** Sous le titre, avant le contenu — la semaine de l'accueil, par exemple. */
@@ -43,7 +46,11 @@ export function Screen({
 
   const body = (
     <>
-      {title ? <LargeTitle action={action}>{title}</LargeTitle> : null}
+      {title ? (
+        <LargeTitle action={action} right={titleRight}>
+          {title}
+        </LargeTitle>
+      ) : null}
       {header}
       {children}
     </>
@@ -67,9 +74,12 @@ export function Screen({
 export function LargeTitle({
   children,
   action,
+  right,
 }: {
   children: React.ReactNode;
   action?: { label: string; onPress: () => void };
+  /** Un contrôle à droite du titre, sur la même ligne. */
+  right?: React.ReactNode;
 }) {
   const s = useStyles(makeStyles);
   return (
@@ -77,6 +87,7 @@ export function LargeTitle({
       <Text style={s.title} accessibilityRole="header">
         {children}
       </Text>
+      {right}
       {action ? (
         <Pressable onPress={action.onPress} accessibilityRole="button" hitSlop={8}>
           <Text style={s.titleAction}>{action.label}</Text>

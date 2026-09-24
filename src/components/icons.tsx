@@ -129,3 +129,20 @@ export function PersonIcon(props: IconProps) {
     </Frame>
   );
 }
+
+/**
+ * Outils : le diapason.
+ *
+ * Deux branches, une tige. C'est le seul objet de l'app qu'on n'entend pas encore,
+ * et son icône dit ce qu'il fera.
+ */
+export function TunerIcon(props: IconProps) {
+  const p = stroke(props.color);
+  return (
+    <Frame {...props}>
+      <Path d="M8.5 3v7.5a3.5 3.5 0 0 0 7 0V3" {...p} />
+      <Line x1={12} y1={14} x2={12} y2={21} {...p} />
+      <Line x1={8.5} y1={6} x2={15.5} y2={6} {...p} />
+    </Frame>
+  );
+}

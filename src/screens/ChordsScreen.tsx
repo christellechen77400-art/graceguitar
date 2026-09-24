@@ -1,13 +1,15 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { useNotePlayer } from '../audio/useNotePlayer';
 import { Fretboard, Marker } from '../components/Fretboard';
 import {
+  Card,
   Chip,
   ChipRow,
   DisplayPicker,
   KeyPicker,
   Screen,
+  SecondaryButton,
   Sheet,
   SectionHeader,
   Toggle,
@@ -97,34 +99,37 @@ export function ChordsScreen() {
         ))}
       </ChipRow>
 
-      <View style={s.header}>
-        <Text style={s.chordName}>{chordName(root, chord, notation, flats)}</Text>
-        <Text style={s.chordType}>{t.chords[chord.id]}</Text>
-        <View style={{ flex: 1 }} />
-        <Pressable
-          onPress={() => voicing && playStrum(voicingToMidi(voicing.frets))}
-          disabled={!voicing}
-          accessibilityRole="button"
-          accessibilityLabel={t.listen}
-          style={[s.listen, !voicing && { opacity: 0.35 }]}
-        >
-          <Text style={s.listenText}>{t.listen}</Text>
-        </Pressable>
-      </View>
-
+      {/* L'affichage se règle avant la carte : il décide de ce que portent les
+          pastilles du manche, pas de la carte elle-même. */}
       <View style={s.section}>
         <DisplayPicker />
       </View>
 
-      <View style={s.section}>
-        <Fretboard markers={markers} muted={muted} focusFret={voicing?.minFret} />
+      <View style={s.card}>
+        <Card>
+          <View style={s.cardHead}>
+            <View style={s.cardText}>
+              <Text style={s.chordName}>{chordName(root, chord, notation, flats)}</Text>
+              <Text style={ui.hint}>{t.chords[chord.id]}</Text>
+            </View>
+            <SecondaryButton
+              label={t.listen}
+              disabled={!voicing}
+              onPress={() => voicing && playStrum(voicingToMidi(voicing.frets))}
+            />
+          </View>
+
+          <View style={s.board}>
+            <Fretboard markers={markers} muted={muted} focusFret={voicing?.minFret} />
+          </View>
+        </Card>
       </View>
 
       {voicing ? (
-        <View style={s.nav}>
-          <NavButton label={t.prev} disabled={index === 0} onPress={() => setIndex((i) => i - 1)} />
-          <View style={s.navCenter}>
-            <Text style={s.tab}>{voicingTab(voicing)}</Text>
+        <>
+          {/* Sous la carte, ce qui décrit la position : où l'on en est, d'où elle
+              vient, et comment la poser. */}
+          <View style={s.position}>
             <Text style={s.meta}>
               {t.position} {index + 1} {t.of} {voicings.length},{' '}
               {voicing.minFret === 0 ? t.openPosition.toLowerCase() : `${t.fret.toLowerCase()} ${voicing.minFret}`}
@@ -139,13 +144,24 @@ export function ChordsScreen() {
                 )}
               </Text>
             ) : null}
+            <Text style={s.tab}>{voicingTab(voicing)}</Text>
           </View>
-          <NavButton
-            label={t.next}
-            disabled={index >= voicings.length - 1}
-            onPress={() => setIndex((i) => i + 1)}
-          />
-        </View>
+
+          <View style={s.nav}>
+            <SecondaryButton
+              label={t.prev}
+              style={s.grow}
+              disabled={index === 0}
+              onPress={() => setIndex((i) => i - 1)}
+            />
+            <SecondaryButton
+              label={t.next}
+              style={s.grow}
+              disabled={index >= voicings.length - 1}
+              onPress={() => setIndex((i) => i + 1)}
+            />
+          </View>
+        </>
       ) : (
         <View style={s.section}>
           <Text style={ui.body}>{t.noVoicing}</Text>
@@ -156,9 +172,9 @@ export function ChordsScreen() {
 
       {/* L'analyseur était un onglet. C'est un outil qu'on sort en regardant des
           accords, donc il s'ouvre d'ici, dans une feuille. */}
-      <Pressable onPress={() => setNaming(true)} accessibilityRole="button" style={s.nameChord}>
-        <Text style={s.nameChordText}>{t.nameChord}</Text>
-      </Pressable>
+      <View style={s.nameChord}>
+        <SecondaryButton label={t.nameChord} onPress={() => setNaming(true)} />
+      </View>
 
       <Sheet visible={naming} title={t.nameChord} onClose={() => setNaming(false)} closeLabel={t.close}>
         <AnalyzerPanel />
@@ -167,60 +183,21 @@ export function ChordsScreen() {
   );
 }
 
-function NavButton({ label, disabled, onPress }: { label: string; disabled: boolean; onPress: () => void }) {
-  const s = useStyles(makeStyles);
-  return (
-    <Pressable
-      onPress={onPress}
-      disabled={disabled}
-      accessibilityRole="button"
-      style={[s.navButton, disabled && { opacity: 0.35 }]}
-    >
-      <Text style={s.navText}>{label}</Text>
-    </Pressable>
-  );
-}
-
 const makeStyles = ({ c, type, space }: Theme) =>
   StyleSheet.create({
     /** Le bloc d'une section sans titre : la même respiration qu'un `SectionHeader`. */
     section: { marginTop: space.xl },
-    header: { paddingHorizontal: space.lg, marginTop: space.xl, flexDirection: 'row', alignItems: 'baseline' },
+    card: { marginTop: space.lg },
+    cardHead: { flexDirection: 'row', alignItems: 'center' },
+    cardText: { flex: 1 },
     chordName: { ...type.chordName, color: c.label },
-    chordType: { ...type.subhead, color: c.secondary, marginLeft: space.md },
-    nav: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: space.lg, marginTop: space.md },
-    navCenter: { flex: 1, alignItems: 'center' },
-    tab: { ...type.headline, color: c.label, letterSpacing: 2 },
-    meta: { ...type.caption, color: c.secondary, marginTop: 2 },
+    board: { marginTop: space.lg },
+    /** Ce qui décrit la position, centré sous la carte. */
+    position: { alignItems: 'center', marginTop: space.lg, paddingHorizontal: space.lg },
+    meta: { ...type.caption, color: c.secondary },
     shape: { ...type.caption, color: c.accent, marginTop: 2 },
-    navButton: {
-      paddingHorizontal: space.md,
-      paddingVertical: space.sm,
-      borderRadius: 8,
-      backgroundColor: c.card,
-      borderWidth: 1,
-      borderColor: c.separator,
-    },
-    navText: { ...type.headline, color: c.label },
-    listen: {
-      minHeight: 44,
-      justifyContent: 'center',
-      paddingHorizontal: space.lg,
-      borderRadius: 10,
-      backgroundColor: c.card,
-      borderWidth: 1,
-      borderColor: c.separator,
-    },
-    listenText: { ...type.headline, color: c.label },
-    nameChord: {
-      minHeight: 44,
-      marginHorizontal: space.lg,
-      marginTop: space.xl,
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderRadius: 10,
-      borderWidth: 1,
-      borderColor: c.separator,
-    },
-    nameChordText: { ...type.headline, color: c.label },
+    tab: { ...type.headline, color: c.label, letterSpacing: 2, marginTop: space.sm },
+    nav: { flexDirection: 'row', gap: space.md, paddingHorizontal: space.lg, marginTop: space.lg },
+    grow: { flex: 1 },
+    nameChord: { marginHorizontal: space.lg, marginTop: space.xl },
   });

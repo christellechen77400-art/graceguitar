@@ -2,13 +2,14 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useNotePlayer } from '../audio/useNotePlayer';
 import { Fretboard } from '../components/Fretboard';
-import { FlameIcon, PersonIcon } from '../components/icons';
+import { PersonIcon } from '../components/icons';
+import { SessionCard } from '../components/SessionCard';
+import { StreakPill } from '../components/StreakPill';
 import {
   Card,
   Chip,
   ChipRow,
   PrimaryButton,
-  ProgressRing,
   Screen,
   SecondaryButton,
   useTextStyles,
@@ -19,7 +20,7 @@ import { notionOfDay } from '../home/notion';
 import { homeSections, HomeSection, isSundayMode, SUNDAY_QUESTIONS } from '../home/order';
 import { syncSundayReminder } from '../home/notifications';
 import { weekMinutes } from '../home/stats';
-import { DailyExercise, dailySession } from '../practice/daily';
+import { dailySession } from '../practice/daily';
 import {
   ExerciseId,
   heat,
@@ -134,14 +135,7 @@ export function TodayScreen() {
         session={session}
         done={doneToday}
         sunday={sunday}
-        onStart={() => {
-          // On reprend la séance là où elle s'est arrêtée : les exercices déjà
-          // faits aujourd'hui ne sont pas reposés. Tous faits, on la refait.
-          const pending = session.exercises.filter((e) => !doneToday.has(e.id));
-          const asked = pending.length ? pending : session.exercises;
-          const questions = asked.flatMap((e) => e.questions);
-          if (questions.length) setRun(questions);
-        }}
+        onStart={(questions) => questions.length && setRun(questions)}
       />
     ),
     sundaySet: (
@@ -188,13 +182,8 @@ export function TodayScreen() {
       <View style={s.head}>
         <Text style={s.date}>{formatDayTitle(iso, t)}</Text>
         <View style={s.headRight}>
-          <View
-            style={s.pill}
-            accessibilityRole="text"
-            accessibilityLabel={`${t.progression.streak} : ${t.today.streakDays(days)}`}
-          >
-            <FlameIcon color={c.accent} size={16} />
-            <Text style={s.pillText}>{t.today.streakDays(days)}</Text>
+          <View style={s.pillGap}>
+            <StreakPill days={days} />
           </View>
           <Pressable
             onPress={() => setSpace(true)}
@@ -236,70 +225,6 @@ export function TodayScreen() {
 }
 
 // --------------------------------------------------------------------- cartes
-
-/**
- * La séance du jour : trois exercices d'environ dix questions.
- *
- * Ceux qui sont déjà faits aujourd'hui sont barrés et cochés — on reprend la
- * séance là où elle s'est arrêtée, on ne la recommence pas.
- */
-function SessionCard({
-  session,
-  done,
-  sunday,
-  onStart,
-}: {
-  session: ReturnType<typeof dailySession>;
-  done: Set<ExerciseId>;
-  sunday: boolean;
-  onStart: () => void;
-}) {
-  const { t } = useSettings();
-  const s = useStyles(makeStyles);
-  const ui = useTextStyles();
-
-  const finished = session.exercises.filter((e) => done.has(e.id)).length;
-  const started = finished > 0 && finished < session.exercises.length;
-
-  return (
-    <Card>
-      <View style={s.sessionHead}>
-        <ProgressRing
-          progress={session.exercises.length ? finished / session.exercises.length : 0}
-          label={`${finished}/${session.exercises.length}`}
-        />
-        <View style={s.sessionText}>
-          <Text style={s.cardTitle}>{sunday ? t.today.openedSet : t.today.session}</Text>
-          <Text style={ui.hint}>{t.today.sessionHint(session.questionCount, session.minutes)}</Text>
-        </View>
-      </View>
-
-      {session.exercises.map((exercise) => (
-        <ExerciseLine key={exercise.id} exercise={exercise} done={done.has(exercise.id)} />
-      ))}
-
-      <View style={s.cardActions}>
-        <PrimaryButton
-          label={started ? t.today.continue : t.today.start}
-          onPress={onStart}
-          disabled={!session.questionCount}
-        />
-      </View>
-    </Card>
-  );
-}
-
-function ExerciseLine({ exercise, done }: { exercise: DailyExercise; done: boolean }) {
-  const { t } = useSettings();
-  const s = useStyles(makeStyles);
-  return (
-    <View style={s.exercise}>
-      <Text style={s.check}>{done ? '✓' : ''}</Text>
-      <Text style={[s.exerciseName, done && s.exerciseDone]}>{t.practice.exercises[exercise.id]}</Text>
-      <Text style={s.exerciseCount}>{t.today.questionCount(exercise.questions.length)}</Text>
-    </View>
-  );
-}
 
 /**
  * Le set du dimanche.
@@ -474,17 +399,7 @@ const makeStyles = ({ c, type, space, radius, size }: Theme) =>
     },
     date: { ...type.subhead, color: c.secondary, flexShrink: 1 },
     headRight: { flexDirection: 'row', alignItems: 'center' },
-    pill: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: space.xs,
-      paddingHorizontal: space.md,
-      minHeight: 32,
-      borderRadius: radius.pill,
-      backgroundColor: c.fill,
-      marginRight: space.sm,
-    },
-    pillText: { ...type.caption, ...tabularNums, color: c.label },
+    pillGap: { marginRight: space.sm },
     space: {
       width: size.touch,
       height: size.touch,
@@ -521,14 +436,7 @@ const makeStyles = ({ c, type, space, radius, size }: Theme) =>
     dotDone: { backgroundColor: c.accent, borderColor: c.accent },
     dotText: { ...type.caption, color: c.secondary },
     dotTextDone: { color: c.onAccent, fontWeight: '600' },
-    sessionHead: { flexDirection: 'row', alignItems: 'center' },
-    sessionText: { flex: 1, marginLeft: space.lg },
-    exercise: { flexDirection: 'row', alignItems: 'center', minHeight: size.row, marginTop: space.xs },
-    check: { ...type.body, color: c.accent, width: 22 },
-    exerciseName: { ...type.body, color: c.label, flex: 1 },
-    exerciseDone: { color: c.secondary, textDecorationLine: 'line-through' },
-    exerciseCount: { ...type.caption, color: c.secondary, marginLeft: space.sm },
-    cardTitle: { ...type.cardTitle, color: c.label },
+                  cardTitle: { ...type.cardTitle, color: c.label },
     cardActions: { marginTop: space.md },
     emptyLine: { marginHorizontal: space.lg, marginTop: space.lg },
     emptyPress: {

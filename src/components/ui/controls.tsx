@@ -113,6 +113,7 @@ export function Stepper({
   onChange,
   min = 1,
   max = 99,
+  step = 1,
   format,
 }: {
   label: string;
@@ -120,6 +121,8 @@ export function Stepper({
   onChange: (v: number) => void;
   min?: number;
   max?: number;
+  /** Le pas du compteur : les questions se comptent par cinq. */
+  step?: number;
   format?: (v: number) => string;
 }) {
   const s = useStyles(makeStyles);
@@ -128,7 +131,7 @@ export function Stepper({
       <Text style={s.toggleLabel}>{label}</Text>
       <View style={s.stepper}>
         <Pressable
-          onPress={() => onChange(Math.max(min, value - 1))}
+          onPress={() => onChange(Math.max(min, value - step))}
           disabled={value <= min}
           accessibilityRole="button"
           accessibilityLabel={`${label} −`}
@@ -138,7 +141,7 @@ export function Stepper({
         </Pressable>
         <Text style={[s.stepValue, s.tabular]}>{format ? format(value) : String(value)}</Text>
         <Pressable
-          onPress={() => onChange(Math.min(max, value + 1))}
+          onPress={() => onChange(Math.min(max, value + step))}
           disabled={value >= max}
           accessibilityRole="button"
           accessibilityLabel={`${label} +`}

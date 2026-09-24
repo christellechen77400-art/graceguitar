@@ -4,6 +4,7 @@ import { Fretboard } from '../components/Fretboard';
 import {
   Chip,
   ChipRow,
+  ListRow,
   PrimaryButton,
   SecondaryButton,
   SectionHeader,
@@ -43,18 +44,20 @@ export function LessonsPanel({
     return <LessonView id={open} content={lessons[open]} onExit={onExit ?? (() => setOpen(null))} />;
   }
 
+  // Le titre de la section appartient à l'écran qui appelle : ici on ne pose que
+  // la liste, pour qu'elle puisse vivre sous « Théorie » comme sous autre chose.
   return (
     <View>
-      <Text style={s.title}>{t.theory.title}</Text>
-      <View style={s.section}>
-        {LESSON_ORDER.map((id, i) => (
-          <Pressable key={id} onPress={() => setOpen(id)} accessibilityRole="button" style={s.row}>
-            <Text style={s.index}>{i + 1}</Text>
-            <Text style={s.rowLabel}>{lessons[id].title}</Text>
-            <Text style={s.chevron}>›</Text>
-          </Pressable>
-        ))}
-      </View>
+      {LESSON_ORDER.map((id, i) => (
+        <ListRow
+          key={id}
+          icon={<Text style={s.index}>{i + 1}</Text>}
+          title={lessons[id].title}
+          chevron
+          last={i === LESSON_ORDER.length - 1}
+          onPress={() => setOpen(id)}
+        />
+      ))}
     </View>
   );
 }
@@ -178,20 +181,10 @@ function LessonView({
 
 const makeStyles = ({ c, type, space, size }: Theme) =>
   StyleSheet.create({
-    title: { ...type.cardTitle, color: c.label, paddingHorizontal: space.lg, marginTop: space.md },
     /** Le bloc d'une section sans titre : la même respiration qu'un `SectionHeader`. */
     section: { marginTop: space.xl },
-    row: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      minHeight: size.row,
-      paddingHorizontal: space.lg,
-      borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: c.separator,
-    },
-    index: { ...type.caption, color: c.secondary, width: 24 },
-    rowLabel: { ...type.body, color: c.label, flex: 1 },
-    chevron: { ...type.section, color: c.secondary },
+    /** Le numéro de la leçon, dans la case neutre de la ligne. */
+    index: { ...type.caption, color: c.iconForeground },
     lesson: { paddingBottom: space.xl },
     lessonBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: space.lg, paddingTop: space.sm },
     quit: { width: size.touch, height: size.touch, alignItems: 'center', justifyContent: 'center' },

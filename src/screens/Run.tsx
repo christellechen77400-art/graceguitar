@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNotePlayer } from '../audio/useNotePlayer';
 import { Fretboard, Marker } from '../components/Fretboard';
-import { Chip, ChipRow, useTextStyles } from '../components/ui';
+import { Chip, ChipRow, PrimaryButton, SecondaryButton, useTextStyles } from '../components/ui';
 import {
   Attempt,
   Question,
@@ -15,7 +16,7 @@ import {
 } from '../practice/engine';
 import { useHideTabBar } from '../navigation';
 import { useSettings } from '../state/settings';
-import { tabularNums, Theme, useStyles } from '../theme';
+import { space, tabularNums, Theme, useStyles } from '../theme';
 import { chordById, chordName } from '../theory/chords';
 import { mod12, noteName, Notation, pcAt, prefersFlats, STANDARD_TUNING } from '../theory/notes';
 import { DIATONIC } from '../theory/worship';
@@ -30,6 +31,7 @@ import { DIATONIC } from '../theory/worship';
 export function RunScreen({ questions, onExit }: { questions: Question[]; onExit: () => void }) {
   const { settings, notation, t, update } = useSettings();
   const s = useStyles(makeStyles);
+  const insets = useSafeAreaInsets();
   const { playNote, playStrum } = useNotePlayer();
   // Une séance occupe l'écran : la barre d'onglets s'efface pendant ce temps.
   useHideTabBar(true);
@@ -169,8 +171,10 @@ export function RunScreen({ questions, onExit }: { questions: Question[]; onExit
   const confirmable =
     question.exercise === 'transpose' ? transposed.length === question.degrees.length : answer !== null;
 
+  // Une séance occupe l'écran : la consigne et la réponse défilent, les deux
+  // boutons restent au bas. Rien n'est jamais hors de portée du pouce.
   return (
-    <View style={s.run}>
+    <View style={[s.run, { paddingBottom: insets.bottom + space.md }]}>
       <View style={s.runBar}>
         <Pressable
           onPress={onExit}
@@ -186,33 +190,36 @@ export function RunScreen({ questions, onExit }: { questions: Question[]; onExit
         <Text style={s.counter}>{t.practice.progress(index + 1, total)}</Text>
       </View>
 
-      <Text style={s.prompt}>{promptFor(question, t, notation, flats)}</Text>
+      <ScrollView contentContainerStyle={s.body} showsVerticalScrollIndicator={false}>
+        <Text style={s.prompt}>{promptFor(question, t, notation, flats)}</Text>
 
-      <AnswerArea
-        question={question}
-        notation={notation}
-        flats={flats}
-        answer={answer}
-        found={found}
-        transposed={transposed}
-        onAnswer={setAnswer}
-        onTransposed={setTransposed}
-        onFret={answerBoard}
-      />
+        <AnswerArea
+          question={question}
+          notation={notation}
+          flats={flats}
+          answer={answer}
+          found={found}
+          transposed={transposed}
+          onAnswer={setAnswer}
+          onTransposed={setTransposed}
+          onFret={answerBoard}
+        />
 
-      {answered && (
-        <Text style={[s.feedback, outcome ? s.feedbackOk : s.feedbackBad]}>
-          {outcome ? t.practice.correct : t.practice.wrong}
-        </Text>
-      )}
+        {answered && (
+          <Text style={[s.feedback, outcome ? s.feedbackOk : s.feedbackBad]}>
+            {outcome ? t.practice.correct : t.practice.wrong}
+          </Text>
+        )}
+      </ScrollView>
 
       <View style={s.runFooter}>
-        <Pressable onPress={() => sound(question)} accessibilityRole="button" style={s.secondary}>
-          <Text style={s.secondaryText}>{t.practice.listen}</Text>
-        </Pressable>
+        <SecondaryButton label={t.practice.listen} onPress={() => sound(question)} />
         {/* Playing questions answer themselves; the rest are graded on confirm. */}
         {needsConfirm(question) && (
-          <Pressable
+          <PrimaryButton
+            label={t.practice.next}
+            disabled={!confirmable || answered}
+            style={s.grow}
             onPress={() => {
               if (question.exercise === 'transpose') {
                 commit(question.answers.every((a, i) => a === transposed[i]));
@@ -220,12 +227,7 @@ export function RunScreen({ questions, onExit }: { questions: Question[]; onExit
                 commit(answer === correctChoice(question));
               }
             }}
-            disabled={!confirmable || answered}
-            accessibilityRole="button"
-            style={[s.primary, (!confirmable || answered) && s.disabled]}
-          >
-            <Text style={s.primaryText}>{t.practice.next}</Text>
-          </Pressable>
+          />
         )}
       </View>
     </View>
@@ -422,8 +424,9 @@ function SummaryView({
   const { t } = useSettings();
   const s = useStyles(makeStyles);
   const ui = useTextStyles();
+  const insets = useSafeAreaInsets();
   return (
-    <View style={s.run}>
+    <View style={[s.run, { paddingBottom: insets.bottom + space.md }]}>
       <Text style={s.prompt}>{t.practice.score}</Text>
       <Text style={s.score}>
         {summary.correct} / {summary.total}
@@ -434,16 +437,10 @@ function SummaryView({
       </Text>
       <View style={s.runFooter}>
         {summary.missed.length > 0 && (
-          <Pressable onPress={onRedo} accessibilityRole="button" style={s.primary}>
-            <Text style={s.primaryText}>{t.practice.redoMissed}</Text>
-          </Pressable>
+          <PrimaryButton label={t.practice.redoMissed} style={s.grow} onPress={onRedo} />
         )}
-        <Pressable onPress={onAgain} accessibilityRole="button" style={s.secondary}>
-          <Text style={s.secondaryText}>{t.practice.start}</Text>
-        </Pressable>
-        <Pressable onPress={onExit} accessibilityRole="button" style={s.secondary}>
-          <Text style={s.secondaryText}>{t.practice.done}</Text>
-        </Pressable>
+        <SecondaryButton label={t.practice.start} onPress={onAgain} />
+        <SecondaryButton label={t.practice.done} onPress={onExit} />
       </View>
     </View>
   );
@@ -451,8 +448,9 @@ function SummaryView({
 
 const makeStyles = ({ c, type, space, radius, size }: Theme) =>
   StyleSheet.create({
-    // Not flex: 1 — a run renders inside the app's scroll view, so it sizes itself.
-    run: { paddingBottom: space.xl },
+    run: { flex: 1, backgroundColor: c.background },
+    /** Ce qui défile entre la barre du haut et les boutons du bas. */
+    body: { paddingBottom: space.xl },
     runBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: space.lg, paddingTop: space.md },
     quit: { width: size.touch, height: size.touch, alignItems: 'center', justifyContent: 'center' },
     quitText: { ...type.body, color: c.label },
@@ -480,27 +478,9 @@ const makeStyles = ({ c, type, space, radius, size }: Theme) =>
     // has one accent, and it means "action", never "well done".
     feedbackOk: { color: c.label },
     feedbackBad: { color: c.destructive },
-    runFooter: { flexDirection: 'row', gap: space.md, paddingHorizontal: space.lg, marginTop: space.xl },
-    primary: {
-      minHeight: size.button,
-      flex: 1,
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderRadius: radius.button,
-      backgroundColor: c.accent,
-    },
-    primaryText: { ...type.headline, color: c.onAccent },
-    secondary: {
-      minHeight: size.button,
-      paddingHorizontal: space.lg,
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderRadius: radius.button,
-      borderWidth: 1,
-      borderColor: c.separator,
-    },
-    secondaryText: { ...type.headline, color: c.label },
-    disabled: { opacity: 0.35 },
+    runFooter: { flexDirection: 'row', gap: space.md, paddingHorizontal: space.lg, paddingTop: space.lg },
+    /** Le bouton qui prend la place : le principal des deux. */
+    grow: { flex: 1 },
     score: {
       ...type.greeting,
       ...tabularNums,

@@ -1,6 +1,23 @@
-import React, { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Chip, ChipRow, Screen, SectionHeader, Toggle, useTextStyles } from '../components/ui';
+import React, { useMemo, useState } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
+import { SessionCard } from '../components/SessionCard';
+import { StreakPill } from '../components/StreakPill';
+import { TunerIcon } from '../components/icons';
+import {
+  Chip,
+  ChipRow,
+  ListRow,
+  PrimaryButton,
+  Screen,
+  SectionHeader,
+  Sheet,
+  Stepper,
+  Toggle,
+  useTextStyles,
+} from '../components/ui';
+import { seedOf } from '../home/day';
+import { isSundayMode, SUNDAY_QUESTIONS } from '../home/order';
+import { dailySession } from '../practice/daily';
 import {
   ExerciseId,
   EXERCISES,
@@ -8,67 +25,125 @@ import {
   PracticeSettings,
   QUESTION_COUNTS,
   Question,
+  streak,
   ZONES,
 } from '../practice/engine';
+import { today as todayIso } from '../songs/model';
 import { useSettings } from '../state/settings';
-import { Theme, useStyles } from '../theme';
+import { Theme, useStyles, useTheme } from '../theme';
 import { noteName, STANDARD_TUNING, STRING_COUNT } from '../theory/notes';
 import { LessonsPanel } from './LessonsPanel';
-import { ProgressionPanel } from './ProgressionPanel';
 import { RunScreen } from './Run';
 
+/** Le compteur de questions ne sort pas de la plage que le moteur sait poser. */
+const MIN_QUESTIONS = QUESTION_COUNTS[0];
+const MAX_QUESTIONS = QUESTION_COUNTS[QUESTION_COUNTS.length - 1];
+
 /**
- * The practice tab: what the record says, the exercises, the course, and the
- * settings they all run on.
+ * L'onglet Exercices.
+ *
+ * Il ouvre sur la même séance que l'accueil — c'est le même objet, pas une carte
+ * qui y ressemble — puis range les exercices par terrain. Toucher un exercice
+ * n'ouvre pas une séance : ça ouvre ses réglages. On choisit ses cordes, sa zone,
+ * sa longueur, et on part.
  */
 export function PracticeScreen() {
   const s = useStyles(makeStyles);
   const { settings, t } = useSettings();
-  const [running, setRunning] = useState<Question[] | null>(null);
-  const [progressOpen, setProgressOpen] = useState(true);
+  const { c } = useTheme();
+  const iso = todayIso();
+  const [run, setRun] = useState<Question[] | null>(null);
+  const [editing, setEditing] = useState<ExerciseId | null>(null);
+  const [tuner, setTuner] = useState(false);
 
-  if (running) return <RunScreen questions={running} onExit={() => setRunning(null)} />;
+  const sunday = isSundayMode(new Date(`${iso}T00:00:00.000Z`).getUTCDay());
+  const session = useMemo(
+    () =>
+      dailySession(settings.practice, settings.progress, seedOf(iso), sunday ? SUNDAY_QUESTIONS : undefined),
+    [settings.practice, settings.progress, iso, sunday],
+  );
+  const doneToday = useMemo(
+    () =>
+      new Set<ExerciseId>(
+        settings.runs.filter((record) => record.day === iso).flatMap((record) => record.exercises),
+      ),
+    [settings.runs, iso],
+  );
+
+  if (run) return <RunScreen questions={run} onExit={() => setRun(null)} />;
+
+  const start = (id: ExerciseId) => {
+    setEditing(null);
+    setRun(makeRun(id, settings.practice, seedOf(`${iso}-${id}`)));
+  };
 
   const sections = (['neck', 'chordsEar'] as const).map((key) => ({
     key,
     ids: EXERCISES.filter((e) => e.section === key).map((e) => e.id),
   }));
 
-  const start = (id: ExerciseId) => setRunning(makeRun(id, settings.practice, Date.now() % 100000));
-
   return (
-    <Screen tab="practice" title={t.practice.title}>
-      <Pressable
-        onPress={() => setProgressOpen((v) => !v)}
-        accessibilityRole="button"
-        accessibilityState={{ expanded: progressOpen }}
-        style={s.disclosure}
-      >
-        <Text style={s.disclosureText}>{t.progression.title}</Text>
-        <Text style={s.chevron}>{progressOpen ? '⌄' : '›'}</Text>
-      </Pressable>
-      {progressOpen && <ProgressionPanel />}
+    <Screen tab="practice" title={t.practice.title} titleRight={<StreakPill days={streak(settings.practiceDays, iso)} />}>
+      <View style={s.card}>
+        <SessionCard
+          session={session}
+          done={doneToday}
+          sunday={sunday}
+          onStart={(questions) => questions.length && setRun(questions)}
+        />
+      </View>
 
       {sections.map((section) => (
         <React.Fragment key={section.key}>
           <SectionHeader>{t.practice.sections[section.key]}</SectionHeader>
-          {section.ids.map((id) => (
-            <Pressable key={id} onPress={() => start(id)} accessibilityRole="button" style={s.row}>
-              <Text style={s.rowLabel}>{t.practice.exercises[id]}</Text>
-              <Text style={s.chevron}>›</Text>
-            </Pressable>
+          {section.ids.map((id, i) => (
+            <ListRow
+              key={id}
+              title={t.practice.exercises[id]}
+              subtitle={t.practice.hints[id]}
+              chevron
+              last={i === section.ids.length - 1}
+              onPress={() => setEditing(id)}
+            />
           ))}
         </React.Fragment>
       ))}
 
-      <SettingsSheet />
+      <SectionHeader>{t.practice.sections.theory}</SectionHeader>
       <LessonsPanel />
+
+      <SectionHeader>{t.practice.sections.tools}</SectionHeader>
+      <ListRow
+        icon={<TunerIcon color={c.iconForeground} size={18} />}
+        title={t.tuner}
+        chevron
+        last
+        onPress={() => setTuner(true)}
+      />
+
+      {editing ? (
+        <ExerciseSheet
+          id={editing}
+          onClose={() => setEditing(null)}
+          onStart={() => start(editing)}
+        />
+      ) : null}
+
+      <Sheet visible={tuner} title={t.tuner} onClose={() => setTuner(false)} closeLabel={t.close}>
+        <Text style={s.soon}>{t.practice.comingSoon}</Text>
+        <Text style={s.soonHint}>{t.practice.tunerHint}</Text>
+      </Sheet>
     </Screen>
   );
 }
 
-/** Strings, fret zone, accidentals and length: remembered between runs. */
-function SettingsSheet() {
+/**
+ * Les réglages d'un exercice, dans une feuille.
+ *
+ * Les mêmes réglages servent à tous les exercices : ils sont enregistrés une
+ * fois, et l'exercice qu'on ouvre n'est que celui qu'on va lancer.
+ */
+function ExerciseSheet({ id, onClose, onStart }: { id: ExerciseId; onClose: () => void; onStart: () => void }) {
   const s = useStyles(makeStyles);
   const ui = useTextStyles();
   const { settings, t, update } = useSettings();
@@ -79,17 +154,23 @@ function SettingsSheet() {
     const next = p.strings.includes(string)
       ? p.strings.filter((x) => x !== string)
       : [...p.strings, string].sort();
-    // Never leave a run with nothing to ask about.
+    // Ne jamais laisser une séance sans rien à demander.
     if (next.length) set({ strings: next });
   };
 
   return (
-    <View>
-      <SectionHeader>{t.practice.settings}</SectionHeader>
+    <Sheet
+      visible
+      title={t.practice.exercises[id]}
+      onClose={onClose}
+      closeLabel={t.close}
+      footer={<PrimaryButton label={t.practice.start} onPress={onStart} />}
+    >
+      <SectionHeader>{t.practice.strings}</SectionHeader>
       <Text style={ui.hint}>{t.practice.stringsHint}</Text>
       <ChipRow>
-        <Chip label={t.practice.oneString} onPress={() => set({ strings: [5] })} />
-        <Chip label={t.practice.twoStrings} onPress={() => set({ strings: [4, 5] })} />
+        <Chip label={t.practice.oneString} selected={p.strings.length === 1} onPress={() => set({ strings: [5] })} />
+        <Chip label={t.practice.twoStrings} selected={p.strings.length === 2} onPress={() => set({ strings: [4, 5] })} />
         <Chip
           label={t.practice.allStrings}
           selected={p.strings.length === STRING_COUNT}
@@ -119,47 +200,35 @@ function SettingsSheet() {
         ))}
       </ChipRow>
 
-      <SectionHeader>{t.practice.questions}</SectionHeader>
-      <ChipRow>
-        {QUESTION_COUNTS.map((n) => (
-          <Chip
-            key={n}
-            label={String(n)}
-            selected={p.questionCount === n}
-            onPress={() => set({ questionCount: n })}
-          />
-        ))}
-      </ChipRow>
+      {/* Répondre en jouant demande un micro qui écoute : la ligne est là, et
+          annoncée comme telle plutôt que de faire semblant. */}
+      <SectionHeader>{t.practice.answering}</SectionHeader>
+      <ListRow title={t.practice.onScreen} right={<Text style={s.check}>✓</Text>} />
+      <ListRow title={t.practice.byGuitar} subtitle={t.practice.comingSoon} muted last />
 
-      <Toggle
-        label={t.practice.accidentals}
-        value={p.accidentals}
-        onChange={(accidentals) => set({ accidentals })}
+      <SectionHeader>{t.practice.questions}</SectionHeader>
+      <Stepper
+        label={t.practice.questions}
+        value={p.questionCount}
+        onChange={(questionCount) => set({ questionCount })}
+        min={MIN_QUESTIONS}
+        max={MAX_QUESTIONS}
+        step={MIN_QUESTIONS}
       />
+
+      <SectionHeader>{t.practice.settings}</SectionHeader>
+      <Toggle label={t.practice.accidentals} value={p.accidentals} onChange={(accidentals) => set({ accidentals })} />
       <Toggle label={t.practice.timed} value={p.timed} onChange={(timed) => set({ timed })} />
-    </View>
+    </Sheet>
   );
 }
 
-const makeStyles = ({ c, type, space, size }: Theme) =>
+/** Les trois lignes qui restent : rien à étiqueter, seulement à espacer. */
+const makeStyles = ({ c, type, space }: Theme) =>
   StyleSheet.create({
-    disclosure: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      minHeight: size.row,
-      paddingHorizontal: space.lg,
-      marginTop: space.md,
-    },
-    disclosureText: { ...type.cardTitle, color: c.label },
-    chevron: { ...type.section, color: c.secondary },
-    row: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      minHeight: size.row,
-      paddingHorizontal: space.lg,
-      borderBottomWidth: StyleSheet.hairlineWidth,
-      borderBottomColor: c.separator,
-    },
-    rowLabel: { ...type.body, color: c.label, flex: 1 },
+    /** La carte de séance porte déjà ses 16 de marge : on n'ajoute qu'un peu d'air. */
+    card: { marginTop: space.md },
+    check: { ...type.body, color: c.accent },
+    soon: { ...type.section, color: c.label, paddingHorizontal: space.lg, marginTop: space.xl },
+    soonHint: { ...type.caption, color: c.secondary, paddingHorizontal: space.lg, marginTop: space.sm, lineHeight: 18 },
   });
