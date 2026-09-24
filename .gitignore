@@ -1,0 +1,31 @@
+# Dépendances
+node_modules/
+
+# Expo et Metro
+.expo/
+dist/
+web-build/
+.expo-shared/
+
+# Builds natifs — régénérés par `npx expo prebuild`
+ios/
+android/
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Secrets. `.env.example` est versionné, `.env` ne l'est jamais :
+# il porte les clés Supabase, et une clé poussée ne s'efface pas d'un historique.
+.env
+.env.*
+!.env.example
+
+# Divers
+*.log
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+.DS_Store
+*.tsbuildinfo
