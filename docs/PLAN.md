@@ -12,7 +12,7 @@ Public : guitaristes de louange qui passent de l'acoustique à l'électrique, ou
 ## 2. Décisions validées
 | Sujet | Décision |
 | --- | --- |
-| Nom | **GCCGuitare** (ancien nom GraceGuitar). Orthographe à confirmer : « GCCGuitare » ou « GCC Guitare » |
+| Nom | **GCCGuitare** (en un mot, sans espace ; ancien nom GraceGuitar) |
 | Statut | Outil interne de l'église. Pas de pub, pas de paiement, pas de « Soutenir ». Version publique payante éventuelle plus tard |
 | Compte | **Compte unique** partagé avec l'app d'église, synchronisé |
 | Navigation | 4 onglets : Accueil, Manche, Dimanche, Moi |

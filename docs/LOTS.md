@@ -62,7 +62,7 @@ Données : `content/exercises.fr.json`. 6 niveaux, 6 formats. Séance de 12 minu
 Pas de code. Liste de contrôle :
 1. Tous les tests de `docs/TESTS.md` sont passés sur la PWA.
 2. Aucun secret dans l'historique (`git log -p | grep -i "key\|secret\|token"`).
-3. Transfert de propriété du dépôt perso vers l'organisation de l'église (Settings > Transfer ownership), renommage `gcc-guitare`, dépôt privé, développeur ajouté en collaborateur.
+3. Transfert de propriété du dépôt perso vers l'organisation de l'église (Settings > Transfer ownership), renommage `gccguitare`, dépôt privé, développeur ajouté en collaborateur.
 4. Netlify reconnecté au nouveau dépôt, variables d'environnement vérifiées, PWA redéployée.
 5. `FEATURE_CHURCH_SYNC` toujours à `false` jusqu'à la fin du lot 6.
 
