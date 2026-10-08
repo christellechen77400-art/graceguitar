@@ -1,0 +1,191 @@
+{
+  "locale": "fr",
+  "icon": "bulb",
+  "tips": [
+    {
+      "id": "tip-01",
+      "order": 1,
+      "group": "positions",
+      "title": "Même note, plus aiguë",
+      "text": "Octave : 2 cordes plus haut, 2 cases à droite (3 cases si on arrive sur la corde de si ou de mi aigu).",
+      "example": "Do corde de la case 3, puis do corde de sol case 5 ; sol corde de ré case 5, puis sol corde de si case 8.",
+      "memo": "2 cordes, 2 cases. Trois cases si tu arrives sur si ou mi.",
+      "verification": "calcul",
+      "reference": "docs/verification/theory_tips.py",
+      "showOn": [
+        "notes",
+        "accords"
+      ]
+    },
+    {
+      "id": "tip-02",
+      "order": 2,
+      "group": "positions",
+      "title": "Corde d’à côté",
+      "text": "Même note sur la corde voisine plus aiguë : recule de 5 cases vers la tête (4 cases depuis la corde de sol).",
+      "example": "La corde de mi grave case 5 = la corde de la à vide ; ré corde de sol case 7 = ré corde de si case 3.",
+      "memo": "Cinq cases en arrière, quatre depuis sol.",
+      "verification": "calcul",
+      "reference": "docs/verification/theory_tips.py",
+      "showOn": [
+        "notes"
+      ]
+    },
+    {
+      "id": "tip-03",
+      "order": 3,
+      "group": "notes",
+      "title": "Accorder à l’oreille",
+      "text": "La case 5 donne la corde à vide voisine (case 4 sur la corde de sol).",
+      "example": "Mi grave case 5 = la ; la case 5 = ré ; ré case 5 = sol ; sol case 4 = si ; si case 5 = mi aigu.",
+      "memo": "Case 5, sauf sur sol : case 4.",
+      "verification": "calcul",
+      "reference": "docs/verification/theory_tips.py",
+      "showOn": [
+        "notes"
+      ]
+    },
+    {
+      "id": "tip-04",
+      "order": 4,
+      "group": "intervalles",
+      "title": "Quarte puis quinte",
+      "text": "Corde plus haute, même case = quarte (tierce majeure depuis sol). Deux cases plus loin = quinte (3 depuis sol).",
+      "example": "Corde de la case 3 = do ; corde de ré case 3 = fa, case 5 = sol.",
+      "memo": "Même case : quarte. Deux cases de plus : quinte.",
+      "verification": "calcul",
+      "reference": "docs/verification/theory_tips.py",
+      "showOn": [
+        "intervalles"
+      ]
+    },
+    {
+      "id": "tip-05",
+      "order": 5,
+      "group": "notes",
+      "title": "Le miroir",
+      "text": "Mi grave et mi aigu portent les mêmes notes à toutes les cases.",
+      "example": "Case 3 = sol sur les deux.",
+      "memo": "Apprends une corde, tu en connais deux.",
+      "verification": "calcul",
+      "reference": "docs/verification/theory_tips.py",
+      "showOn": [
+        "notes"
+      ]
+    },
+    {
+      "id": "tip-06",
+      "order": 6,
+      "group": "notes",
+      "title": "Repères sur la corde de mi grave",
+      "text": "Fa 1, sol 3, la 5, si 7, do 8, ré 10, mi 12.",
+      "example": "Les points du manche tombent sur 3, 5, 7 et 12.",
+      "memo": "Fa sol la si do ré mi : cases 1, 3, 5, 7, 8, 10, 12.",
+      "verification": "calcul",
+      "reference": "docs/verification/theory_tips.py",
+      "showOn": [
+        "notes"
+      ]
+    },
+    {
+      "id": "tip-07",
+      "order": 7,
+      "group": "intervalles",
+      "title": "Sur une même corde",
+      "text": "Tierce mineure 3 cases, tierce majeure 4, quinte 7, octave 12.",
+      "example": "Sol case 3, puis si case 7 (tierce majeure).",
+      "memo": "3 mineure, 4 majeure, 7 quinte, 12 octave.",
+      "verification": "theorie",
+      "reference": "1 case = 1 demi-ton",
+      "showOn": [
+        "intervalles"
+      ]
+    },
+    {
+      "id": "tip-08",
+      "order": 8,
+      "group": "notes",
+      "title": "Mi–fa et si–do",
+      "text": "Une seule case entre ces deux paires, deux cases partout ailleurs.",
+      "example": "Corde de mi grave : mi 0, fa 1 ; si 7, do 8.",
+      "memo": "Mi et fa, si et do : voisins.",
+      "verification": "theorie",
+      "reference": "demi-tons naturels",
+      "showOn": [
+        "notes"
+      ]
+    },
+    {
+      "id": "tip-09",
+      "order": 9,
+      "group": "triades",
+      "title": "Ordre des renversements",
+      "text": "Sur sol, si, mi aigu, en montant : fondamentale, 1er renversement, 2e renversement, puis on recommence 12 cases plus loin.",
+      "example": "Sol majeur : 1er renversement case 4, 2e case 7, fondamentale case 12.",
+      "memo": "Fondamentale, 1er, 2e, et on recommence.",
+      "verification": "calcul",
+      "reference": "docs/verification/theory_tips.py",
+      "showOn": [
+        "triades"
+      ]
+    },
+    {
+      "id": "tip-10",
+      "order": 10,
+      "group": "gammes",
+      "title": "Pentatonique majeure",
+      "text": "Pentatonique majeure = pentatonique mineure 3 cases plus bas.",
+      "example": "Do majeur utilise la pentatonique mineure de La (cases 5 à 8 sur la corde de mi grave).",
+      "memo": "C’est la mineure, 3 cases plus bas.",
+      "verification": "calcul",
+      "reference": "docs/verification/theory_tips.py",
+      "showOn": [
+        "gammes"
+      ]
+    },
+    {
+      "id": "tip-11",
+      "order": 11,
+      "group": "accords",
+      "title": "Capo",
+      "text": "Capo n + forme de X = X monté de n demi-tons.",
+      "example": "Capo 2 + forme de Sol = La.",
+      "memo": "Capo 2 : la forme de Sol sonne La.",
+      "verification": "calcul",
+      "reference": "docs/verification/theory_tips.py",
+      "showOn": [
+        "accords",
+        "caged"
+      ]
+    },
+    {
+      "id": "tip-12",
+      "order": 12,
+      "group": "accords",
+      "title": "Passer en mineur",
+      "text": "Baisse la tierce d’une case.",
+      "example": "Mi majeur, mi mineur : la corde de sol passe de la case 1 à vide.",
+      "memo": "Tierce baissée d’une case : mineur.",
+      "verification": "theorie",
+      "reference": "tierce maj 4 / min 3",
+      "showOn": [
+        "accords"
+      ]
+    },
+    {
+      "id": "tip-13",
+      "order": 13,
+      "group": "accords",
+      "title": "Les degrés",
+      "text": "Dans une tonalité majeure : 1, 4 et 5 majeurs ; 2, 3 et 6 mineurs ; 7 diminué.",
+      "example": "En La : La, Si m, Do♯ m, Ré, Mi, Fa♯ m.",
+      "memo": "1-4-5 majeurs, 2-3-6 mineurs.",
+      "verification": "theorie",
+      "reference": "gamme majeure",
+      "showOn": [
+        "accords",
+        "dimanche"
+      ]
+    }
+  ]
+}

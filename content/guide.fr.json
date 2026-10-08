@@ -1,0 +1,80 @@
+{
+  "locale": "fr",
+  "sections": [
+    {
+      "id": "onglets",
+      "title": "Les 4 onglets"
+    },
+    {
+      "id": "icones",
+      "title": "Les petites icônes"
+    },
+    {
+      "id": "sec-chant",
+      "title": "Préparer un chant du dimanche"
+    },
+    {
+      "id": "sec-saisie",
+      "title": "Saisir les accords d’un chant"
+    },
+    {
+      "id": "sec-eglise",
+      "title": "Relier l’app d’église"
+    },
+    {
+      "id": "sec-zone",
+      "title": "Choisir ma zone de triades"
+    },
+    {
+      "id": "sec-guitare",
+      "title": "Passer d’acoustique à électrique"
+    },
+    {
+      "id": "sec-accueil",
+      "title": "Réorganiser l’Accueil"
+    },
+    {
+      "id": "sec-metro",
+      "title": "Jouer avec le métronome"
+    }
+  ],
+  "helpLinks": [
+    {
+      "screen": "accueil",
+      "widget": "raccourcis",
+      "label": "Comment ça marche",
+      "target": "onglets"
+    },
+    {
+      "screen": "manche",
+      "label": "Comment ça marche",
+      "target": "sec-chant"
+    },
+    {
+      "screen": "manche.triades",
+      "label": "Comment choisir ma zone",
+      "target": "sec-zone"
+    },
+    {
+      "screen": "dimanche",
+      "label": "Comment préparer un chant",
+      "target": "sec-chant"
+    },
+    {
+      "screen": "dimanche.vide",
+      "label": "Comment relier l’app d’église ?",
+      "target": "sec-eglise"
+    },
+    {
+      "screen": "accueil.modifier",
+      "label": "Comment ça marche",
+      "target": "sec-accueil"
+    },
+    {
+      "screen": "manche.triades.saisie",
+      "label": "Comment saisir mes accords",
+      "target": "sec-saisie"
+    }
+  ],
+  "rule": "Chaque lien « aide » est un lien profond vers une section du guide et propose « Retour à <écran d’origine> »."
+}

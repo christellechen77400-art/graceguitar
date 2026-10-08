@@ -73,3 +73,13 @@ bascule EN, notation des notes au choix (C D E ou Do Ré Mi).
 4. Accordeur branché sur le micro.
 5. Recevoir un texte ChordPro par la feuille de partage (demande un development build).
 6. Icône définitive, écran de lancement, fiches App Store FR/EN, politique de confidentialité.
+
+## Plan GCCGuitare (refonte 4 onglets) — à lire avant tout nouveau lot
+
+Le produit s'appelle désormais **GCCGuitare** (outil interne à l'église, sans pub ni paiement). La refonte est décrite dans `docs/` :
+- `docs/PLAN.md` (décisions, phases A/B), `docs/LOTS.md` (lots 0, 5A–5I, 6, 7), `docs/PROMPTS.md` (un prompt par lot), `docs/TESTS.md` (4 chants de test et enchaînements attendus), `docs/DESIGN.md` + `docs/design/*.png` (maquettes), `docs/SYNC-EGLISE.md` (synchro, phase B), `docs/ACCES-IMMEDIAT.md` (PWA).
+- Contenus : `content/tips.fr.json`, `content/exercises.fr.json`, `content/guide.fr.json`.
+- Vérifications de référence : `docs/verification/*.py`.
+- Phase A : app autonome, saisie manuelle des accords d'un chant, `FEATURE_CHURCH_SYNC=false`. Phase B : transfert vers le GitHub de l'église, puis synchro.
+- **La « Feuille de route » ci-dessus est remplacée** : plus d'abonnement Pro / RevenueCat ni de paywall (point 1), plus de liaison GCC Louange avant la phase B (point 2). Le lot 0 (`docs/LOTS.md`) audite l'existant et décide quoi garder.
+- Les fichiers `docs/CLAUDE-PLAN-GCCGUITARE.md` et `docs/README-PLAN.md` sont les versions rédigées pour la refonte ; le lot 0 les fusionne dans `CLAUDE.md` et `README.md`.
