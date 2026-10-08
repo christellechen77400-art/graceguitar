@@ -8,18 +8,17 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { IconProps, GridIcon, NeckIcon, NoteIcon, SunIcon, TargetIcon } from './icons';
+import { CalendarIcon, HomeIcon, IconProps, NeckIcon, PersonIcon } from './icons';
 import { tapFeedback } from '../haptics';
 import { scrollTabToTop, TabId, TABS } from '../navigation';
 import { useSettings } from '../state/settings';
 import { GLASS, TAB_BAR, Theme, useStyles, useTheme } from '../theme';
 
 const ICONS: Record<TabId, (props: IconProps) => React.ReactElement> = {
-  today: SunIcon,
-  worship: NoteIcon,
-  chords: GridIcon,
+  home: HomeIcon,
   neck: NeckIcon,
-  practice: TargetIcon,
+  sunday: CalendarIcon,
+  me: PersonIcon,
 };
 
 /** Le ressort de la charte : ni élastique, ni mou. */
@@ -126,7 +125,7 @@ function TabButton({
       <Icon color={color} size={22} />
       {/* La barre a une hauteur fixe, et la pastille qui marque l'onglet choisi
           aussi : au-delà de 1,4× le libellé déborderait de la pastille et la
-          barre mangerait l'écran. Les cinq onglets tiennent alors en une
+          barre mangerait l'écran. Les quatre onglets tiennent alors en une
           icône et un mot court, ce qui reste lisible. */}
       <Text style={[s.label, { color }]} numberOfLines={1} maxFontSizeMultiplier={1.4}>
         {t.tabs[id]}

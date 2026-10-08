@@ -26,7 +26,7 @@ import {
   Toggle,
   useTextStyles,
 } from '../components/ui';
-import { APP_VERSION, PRIVACY_URL, SUPPORT_EMAIL, TERMS_URL } from '../config';
+import { APP_VERSION, FEATURE_CHURCH_SYNC } from '../config';
 import { initialsOf } from '../services/account';
 import { useAuth } from '../services/auth';
 import {
@@ -56,7 +56,7 @@ type VolumeId = (typeof VOLUMES)[number]['value'];
 const GOALS = [5, 10, 15];
 
 /** Les trois écrans qui répondent « pas encore ». */
-type Soon = 'church' | 'tuner' | 'plus';
+type Soon = 'church' | 'tuner';
 
 export function SpaceSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const { settings, notation, t, update } = useSettings();
@@ -326,13 +326,15 @@ export function SpaceSheet({ visible, onClose }: { visible: boolean; onClose: ()
       <Text style={ui.hint}>{t.space.shapesHint}</Text>
 
       <SectionHeader>{t.space.worship}</SectionHeader>
-      <ListRow
-        title={t.space.church}
-        subtitle={t.space.churchHint}
-        value={t.space.churchNone}
-        chevron
-        onPress={() => setSoon('church')}
-      />
+      {FEATURE_CHURCH_SYNC ? (
+        <ListRow
+          title={t.space.church}
+          subtitle={t.space.churchHint}
+          value={t.space.churchNone}
+          chevron
+          onPress={() => setSoon('church')}
+        />
+      ) : null}
       <Toggle
         label={t.space.thursdayReminder}
         value={settings.reminders}
@@ -388,16 +390,6 @@ export function SpaceSheet({ visible, onClose }: { visible: boolean; onClose: ()
         ]}
       />
 
-      <SectionHeader>{t.space.subscription}</SectionHeader>
-      <ListRow
-        title={t.space.plus}
-        subtitle={t.space.soonAvailable}
-        value={t.space.free}
-        chevron
-        onPress={() => setSoon('plus')}
-      />
-      <ListRow title={t.space.restore} subtitle={t.space.soonAvailable} muted last />
-
       <SectionHeader>{t.space.tools}</SectionHeader>
       <ListRow title={t.tuner} subtitle={t.space.tunerHint} chevron last onPress={() => setSoon('tuner')} />
 
@@ -409,9 +401,6 @@ export function SpaceSheet({ visible, onClose }: { visible: boolean; onClose: ()
       </View>
 
       <SectionHeader>{t.space.help}</SectionHeader>
-      <ListRow title={t.space.support} chevron onPress={() => Linking.openURL(`mailto:${SUPPORT_EMAIL}`).catch(() => {})} />
-      <ListRow title={t.space.privacy} chevron onPress={() => Linking.openURL(PRIVACY_URL).catch(() => {})} />
-      <ListRow title={t.space.terms} chevron onPress={() => Linking.openURL(TERMS_URL).catch(() => {})} />
       <ListRow title={t.space.version} value={APP_VERSION} last={!auth.account} />
 
       {/* En tout dernier, et seulement quand il y a un compte : c'est la seule
@@ -445,8 +434,8 @@ function SoonSheet({ which, onClose }: { which: Soon; onClose: () => void }) {
   const s = useStyles(makeStyles);
   const ui = useTextStyles();
 
-  const title = { church: t.space.church, tuner: t.tuner, plus: t.space.plus }[which];
-  const hint = { church: t.space.churchHint, tuner: t.space.tunerHint, plus: t.space.plusHint }[which];
+  const title = { church: t.space.church, tuner: t.tuner }[which];
+  const hint = { church: t.space.churchHint, tuner: t.space.tunerHint }[which];
 
   return (
     <Sheet

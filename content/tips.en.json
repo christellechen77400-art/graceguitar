@@ -1,0 +1,191 @@
+{
+  "locale": "en",
+  "icon": "bulb",
+  "tips": [
+    {
+      "id": "tip-01",
+      "order": 1,
+      "group": "positions",
+      "title": "Same note, higher",
+      "text": "Octave: 2 strings up, 2 frets to the right (3 frets if you land on the B or high E string).",
+      "example": "C on the A string fret 3, then C on the G string fret 5; G on the D string fret 5, then G on the B string fret 8.",
+      "memo": "2 strings, 2 frets. Three frets if you land on B or high E.",
+      "verification": "calcul",
+      "reference": "docs/verification/theory_tips.py",
+      "showOn": [
+        "notes",
+        "accords"
+      ]
+    },
+    {
+      "id": "tip-02",
+      "order": 2,
+      "group": "positions",
+      "title": "The next string over",
+      "text": "Same note on the neighbouring higher string: go back 5 frets toward the headstock (4 frets from the G string).",
+      "example": "A on the low E string fret 5 = the open A string; D on the G string fret 7 = D on the B string fret 3.",
+      "memo": "Five frets back, four from G.",
+      "verification": "calcul",
+      "reference": "docs/verification/theory_tips.py",
+      "showOn": [
+        "notes"
+      ]
+    },
+    {
+      "id": "tip-03",
+      "order": 3,
+      "group": "notes",
+      "title": "Tuning by ear",
+      "text": "Fret 5 gives the neighbouring open string (fret 4 on the G string).",
+      "example": "Low E fret 5 = A; A fret 5 = D; D fret 5 = G; G fret 4 = B; B fret 5 = high E.",
+      "memo": "Fret 5, except on G: fret 4.",
+      "verification": "calcul",
+      "reference": "docs/verification/theory_tips.py",
+      "showOn": [
+        "notes"
+      ]
+    },
+    {
+      "id": "tip-04",
+      "order": 4,
+      "group": "intervalles",
+      "title": "Fourth, then fifth",
+      "text": "Next string up, same fret = a fourth (a major third from G). Two frets further = a fifth (3 from G).",
+      "example": "A string fret 3 = C; D string fret 3 = F, fret 5 = G.",
+      "memo": "Same fret: fourth. Two frets more: fifth.",
+      "verification": "calcul",
+      "reference": "docs/verification/theory_tips.py",
+      "showOn": [
+        "intervalles"
+      ]
+    },
+    {
+      "id": "tip-05",
+      "order": 5,
+      "group": "notes",
+      "title": "The mirror",
+      "text": "Low E and high E carry the same notes at every fret.",
+      "example": "Fret 3 = G on both.",
+      "memo": "Learn one string, you know two.",
+      "verification": "calcul",
+      "reference": "docs/verification/theory_tips.py",
+      "showOn": [
+        "notes"
+      ]
+    },
+    {
+      "id": "tip-06",
+      "order": 6,
+      "group": "notes",
+      "title": "Landmarks on the low E string",
+      "text": "F 1, G 3, A 5, B 7, C 8, D 10, E 12.",
+      "example": "The inlay dots fall on 3, 5, 7 and 12.",
+      "memo": "F G A B C D E: frets 1, 3, 5, 7, 8, 10, 12.",
+      "verification": "calcul",
+      "reference": "docs/verification/theory_tips.py",
+      "showOn": [
+        "notes"
+      ]
+    },
+    {
+      "id": "tip-07",
+      "order": 7,
+      "group": "intervalles",
+      "title": "On a single string",
+      "text": "Minor third 3 frets, major third 4, fifth 7, octave 12.",
+      "example": "G fret 3, then B fret 7 (major third).",
+      "memo": "3 minor, 4 major, 7 fifth, 12 octave.",
+      "verification": "theorie",
+      "reference": "1 case = 1 demi-ton",
+      "showOn": [
+        "intervalles"
+      ]
+    },
+    {
+      "id": "tip-08",
+      "order": 8,
+      "group": "notes",
+      "title": "E–F and B–C",
+      "text": "Only one fret between these two pairs, two frets everywhere else.",
+      "example": "Low E string: E 0, F 1; B 7, C 8.",
+      "memo": "E and F, B and C: neighbours.",
+      "verification": "theorie",
+      "reference": "demi-tons naturels",
+      "showOn": [
+        "notes"
+      ]
+    },
+    {
+      "id": "tip-09",
+      "order": 9,
+      "group": "triades",
+      "title": "Order of inversions",
+      "text": "On the G, B, high E strings, going up: root position, 1st inversion, 2nd inversion, then it starts again 12 frets later.",
+      "example": "G major: 1st inversion at fret 4, 2nd at fret 7, root position at fret 12.",
+      "memo": "Root, 1st, 2nd, and again.",
+      "verification": "calcul",
+      "reference": "docs/verification/theory_tips.py",
+      "showOn": [
+        "triades"
+      ]
+    },
+    {
+      "id": "tip-10",
+      "order": 10,
+      "group": "gammes",
+      "title": "Major pentatonic",
+      "text": "Major pentatonic = minor pentatonic 3 frets lower.",
+      "example": "C major uses the A minor pentatonic (frets 5 to 8 on the low E string).",
+      "memo": "It is the minor, 3 frets lower.",
+      "verification": "calcul",
+      "reference": "docs/verification/theory_tips.py",
+      "showOn": [
+        "gammes"
+      ]
+    },
+    {
+      "id": "tip-11",
+      "order": 11,
+      "group": "accords",
+      "title": "Capo",
+      "text": "Capo n + shape of X = X raised by n semitones.",
+      "example": "Capo 2 + G shape = A.",
+      "memo": "Capo 2: the G shape sounds A.",
+      "verification": "calcul",
+      "reference": "docs/verification/theory_tips.py",
+      "showOn": [
+        "accords",
+        "caged"
+      ]
+    },
+    {
+      "id": "tip-12",
+      "order": 12,
+      "group": "accords",
+      "title": "Going minor",
+      "text": "Lower the third by one fret.",
+      "example": "E major to E minor: the G string goes from fret 1 to open.",
+      "memo": "Third lowered by one fret: minor.",
+      "verification": "theorie",
+      "reference": "tierce maj 4 / min 3",
+      "showOn": [
+        "accords"
+      ]
+    },
+    {
+      "id": "tip-13",
+      "order": 13,
+      "group": "accords",
+      "title": "The degrees",
+      "text": "In a major key: 1, 4 and 5 are major; 2, 3 and 6 are minor; 7 is diminished.",
+      "example": "In A: A, Bm, C♯m, D, E, F♯m.",
+      "memo": "1-4-5 major, 2-3-6 minor.",
+      "verification": "theorie",
+      "reference": "gamme majeure",
+      "showOn": [
+        "accords",
+        "dimanche"
+      ]
+    }
+  ]
+}

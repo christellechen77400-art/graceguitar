@@ -1,14 +1,19 @@
 import Constants from 'expo-constants';
 
 /**
- * Ce qui pointe vers l'extérieur : le support, les pages légales, la version.
+ * Ce qui pointe vers l'extérieur : la version et l'adresse des retours.
  *
- * L'adresse et les pages sont à confirmer avant la mise en ligne — elles sont
- * écrites ici une fois, pour qu'il n'y ait qu'un endroit à corriger. La version
- * vient de `app.json` : deux numéros de version finissent toujours par diverger.
+ * GCCGuitare est un outil interne : pas de support public, pas de pages légales à
+ * héberger. L'adresse des retours vient de l'environnement
+ * (`EXPO_PUBLIC_FEEDBACK_EMAIL`) pour ne jamais être écrite dans le dépôt ; sans
+ * elle, la ligne « Envoyer un retour » n'apparaît pas.
  */
-export const SUPPORT_EMAIL = 'support@graceguitar.app';
-export const PRIVACY_URL = 'https://graceguitar.app/confidentialite';
-export const TERMS_URL = 'https://graceguitar.app/conditions';
+export const FEEDBACK_EMAIL: string = process.env.EXPO_PUBLIC_FEEDBACK_EMAIL ?? '';
+
+/**
+ * La liaison avec l'app d'église (phase B). Tant qu'elle est à `false`, aucun
+ * écran ne la mentionne : l'app est autonome et se teste sans elle.
+ */
+export const FEATURE_CHURCH_SYNC = false;
 
 export const APP_VERSION: string = Constants.expoConfig?.version ?? '0.1.0';

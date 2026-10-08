@@ -1,9 +1,12 @@
-# GraceGuitar — guide pour Claude Code
+# GCCGuitare — guide pour Claude Code
 
-GraceGuitar (« Guitare de louange ») est une app mobile (iOS / Android, Expo + React Native +
-TypeScript) pour les guitaristes de louange : le manche, les accords, les exercices, la théorie,
-les chants du dimanche, et un compte pour retrouver tout ça ailleurs. Interface FR par défaut,
-bascule EN, notation des notes au choix (C D E ou Do Ré Mi).
+GCCGuitare (ancien nom : GraceGuitar) est l'outil de guitare de louange de l'église GCC : le manche, les
+triades, les accords, les exercices, les chants du dimanche. Outil **interne** : pas de pub, pas de
+paiement, pas de bouton « Soutenir ». Expo + React Native + TypeScript, PWA installable (Netlify) puis
+iOS / Android. Interface FR par défaut, bascule EN, notation Do Ré Mi par défaut (ou C D E).
+
+Avant tout nouveau lot, lire `docs/PLAN.md` puis `docs/LOTS.md` (prompts : `docs/PROMPTS.md`, tests :
+`docs/TESTS.md`, maquettes : `docs/DESIGN.md`). Un lot à la fois, une branche par lot.
 
 ## Commandes
 - `npm install` puis `npx expo install --fix` (aligne les versions sur le SDK Expo installé)
@@ -23,13 +26,16 @@ bascule EN, notation des notes au choix (C D E ou Do Ré Mi).
   - `worship.ts` : accords diatoniques, chiffrage Nashville, progressions courantes, calcul du capo
   - `nashville.ts` : degrés, chiffrage, allers-retours entre un degré et un accord
   - `lessons.ts`, `lessons.fr.ts`, `lessons.en.ts` : les leçons de théorie et leurs traductions
+  - `triads.ts` : triades sur 3 cordes voisines, enchaînement qui bouge le moins dans une zone de cases (programmation dynamique), toutes les inversions. Portage de `docs/verification/zone_chain.py`.
 - `src/practice/` : les exercices, purs aussi. `engine.ts` (questions, progression, séries),
   `daily.ts` (la séance du jour), `onboarding.ts` (le test de niveau).
 - `src/home/` : ce que l'accueil décide — `order.ts` (l'ordre des cartes selon le jour),
   `day.ts`, `stats.ts`, `challenge.ts`, `notion.ts`, `reminder.ts`.
 - `src/songs/` : les chants et les sets. `model.ts` (les données), `chordpro.ts` (lecture ChordPro),
   `migrate.ts` (le blob du lot 2 vers la bibliothèque actuelle), `share.ts` (le lien et le QR code),
-  `store.tsx` (le fournisseur et sa persistance), `library.ts`, `labels.ts`, `sources.ts`.
+  `store.tsx` (le fournisseur et sa persistance), `library.ts`, `labels.ts`, `sources.ts`,
+  `chordInput.ts` (saisie manuelle des accords d'un chant → grille et triades).
+- `src/content/` : lecteurs de `content/tips.*.json` et `content/guide.*.json` (13 tips vérifiés, guide d'utilisation).
 - `src/services/` : le compte. `supabase.ts` (le client, ou `null`), `auth.tsx`, `sync.tsx`,
   `merge.ts` (la fusion), `cloudRows.ts` (les colonnes), `chunk.ts`, `password.ts`, `account.ts`,
   `authErrors.ts`.
@@ -37,11 +43,13 @@ bascule EN, notation des notes au choix (C D E ou Do Ré Mi).
   `Segmented`, `Toggle`, `Stepper`, `Sheet`, `PrimaryButton`, `SecondaryButton`, `ProgressRing`,
   `KeyPicker`, `DisplayPicker`). Un écran se construit avec ça, pas avec des styles écrits sur place.
 - `src/components/Fretboard.tsx` : manche SVG défilant horizontalement, marqueurs typés (root, tone, chord, ghost).
-- `src/screens/` : Aujourd'hui, Louange, Accords, Manche, Exercices, plus les feuilles
-  (`SpaceSheet`, `AccountSheet`, `OnboardingScreen`, `Run`, `SongStage`) et `songs/`.
-- `src/navigation.ts` : les onglets, le registre de défilement, `TabBarContext`, `RetestContext`.
+- `src/screens/` : les 4 onglets — `HomeScreen` (Accueil), `MancheScreen` (6 couches : Notes, Intervalles,
+  Accords, Gammes, CAGED, Triades, via `NeckPanels`, `ChordsPanel`, `TriadsPanel`), `WorshipScreen` (Dimanche),
+  `MeScreen` (Moi, `GuideScreens`) — plus `PracticeScreen` et les feuilles (`SpaceSheet`, `AccountSheet`,
+  `ChordEntrySheet`, `InversionsSheet`, `OnboardingScreen`, `Run`, `SongStage`) et `songs/`.
+- `src/navigation.ts` : les 4 onglets (home, neck, sunday, me), les couches du manche, `NavContext`, le registre de défilement, `TabBarContext`, `RetestContext`.
 - `src/i18n/` : `fr.ts` est la référence de type ; `en.ts` doit avoir exactement les mêmes clés
-  (499 aujourd'hui — les deux listes sont comparées, pas devinées).
+  (les deux listes sont comparées, pas devinées ; les clés de la refonte sont dans `fr.gcc.ts` / `en.gcc.ts`).
 - `src/state/settings.tsx` : langue, notation, tonalité, affichage, apparence, son, objectif,
   rappel, main, progression, séances, journal des réponses ; persistés dans AsyncStorage.
 - `supabase/` : `schema.sql` et les Edge Functions. Rien là-dedans n'est chargé par l'app.
@@ -65,11 +73,17 @@ bascule EN, notation des notes au choix (C D E ou Do Ré Mi).
 - Le compte est optionnel : sans `EXPO_PUBLIC_SUPABASE_URL`, l'app fonctionne seule et les écrans
   de compte sont masqués. Aucune fonction du compte ne lève — chacune rend un résultat.
 - `npm run typecheck` et `npm run test:theory` doivent passer avant chaque commit.
+- Aucune note, case ou degré écrit à la main dans l'interface : tout vient de `src/theory`. Chaque règle de `content/tips.fr.json` marquée `calcul` a sa vérification dans `scripts/theory-check.ts`.
+- Les doigtés « confortables » ne sont pas calculables : ils se jugent à la guitare. Ne pas affirmer qu'un doigté est confortable.
+- Icône ⓘ = « Comprendre » (3 niveaux), ampoule = tip, petit lien « Comment ça marche » = lien profond vers le guide.
+- `FEATURE_CHURCH_SYNC = false` (`src/config.ts`) tant que le lot 6 n'est pas fait : aucun écran ne mentionne l'app d'église. Ne jamais inventer le schéma de l'app d'église (`docs/SYNC-EGLISE.md`).
+- Le préfixe de stockage reste `graceguitar.` : c'est sous ces clés que les données existantes sont rangées.
 
 ## Feuille de route
-1. Abonnement Pro via RevenueCat (essai 7 jours), écran paywall, restauration d'achats.
-2. Liaison avec la plateforme GCC Louange (récupérer la tonalité et la grille d'un chant planifié).
-3. Mode gaucher et accordages alternatifs (Drop D, DADGAD, demi-ton plus bas).
-4. Accordeur branché sur le micro.
-5. Recevoir un texte ChordPro par la feuille de partage (demande un development build).
-6. Icône définitive, écran de lancement, fiches App Store FR/EN, politique de confidentialité.
+Remplace l'ancienne (abonnement Pro, liaison GCC Louange avant la phase B : abandonnés).
+- Phase A : app autonome, saisie manuelle des accords d'un chant (fait : lots 5A–5E, 5G ; exercices 5F et iPad 5H restent à faire).
+- Phase B : transfert vers le GitHub de l'église, puis synchro (lot 6, `docs/SYNC-EGLISE.md`).
+- Ensuite : lot 7, accordages alternatifs, accordeur micro, icône définitive.
+
+## Git
+Une branche par lot, petits commits, PR vers `main`. Ne jamais pousser de secrets : variables d'environnement via Netlify / `.env.local` (non versionné).

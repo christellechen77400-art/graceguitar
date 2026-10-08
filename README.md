@@ -1,7 +1,9 @@
-# GraceGuitar
+# GCCGuitare
 
-Guitare de louange — le manche, les accords, les exercices, les chants du dimanche.
-FR / EN.
+Outil de guitare de louange de l'église GCC : manche, triades, gammes, CAGED, accords, exercices, chants du dimanche.
+Outil **interne** (pas de pub, pas de paiement). FR / EN. Ancien nom : GraceGuitar.
+
+Quatre onglets : Accueil · Manche · Dimanche · Moi. Plan, lots et maquettes : dossier `docs/` (`PLAN.md`, `LOTS.md`, `DESIGN.md`).
 
 ```bash
 npm install
@@ -17,6 +19,7 @@ npx expo start
 | `npm run test:theory` | Vérifie tout ce qui est pur (théorie, exercices, chants, migration, compte) |
 | `npm run gen:sounds` | Régénère les échantillons de guitare dans `assets/sounds/` |
 | `npm run gen:icon` | Régénère l'icône provisoire (nécessite Python et Pillow) |
+| `npx expo export --platform web` | Construit la PWA dans `dist/` (c'est ce que fait Netlify, voir `netlify.toml`) |
 
 Voir `CLAUDE.md` pour l'architecture et la suite du développement.
 
@@ -44,7 +47,7 @@ les boutons de compte sont masqués : c'est l'état normal tant que le projet Su
 
 1. Créer un projet Supabase gratuit.
 2. Exécuter `supabase/schema.sql` dans l'éditeur SQL du projet.
-3. Activer les fournisseurs **E-mail** et **Apple**, et ajouter `graceguitar://reset-password`
+3. Activer les fournisseurs **E-mail** et **Apple**, et ajouter `gccguitare://reset-password`
    aux URL de redirection autorisées.
 4. Déployer la fonction `delete-account` (`supabase/functions/delete-account`) :
    ```bash
@@ -62,7 +65,7 @@ dans l'app ni dans le dépôt.
 
 Deux choses demandent un *development build* (`npx expo run:ios`), pas Expo Go :
 
-- **Les liens `graceguitar://`** — le retour de mot de passe (`graceguitar://reset-password`) et
+- **Les liens `gccguitare://`** — le retour de mot de passe (`gccguitare://reset-password`) et
   l'import d'un set partagé. Le code les lit, mais c'est le système qui doit ouvrir l'app, et
   Expo Go ne peut pas s'enregistrer sous ce schéma.
 - **Recevoir un texte ChordPro par la feuille de partage.** Le plugin de configuration

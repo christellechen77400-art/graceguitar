@@ -146,3 +146,63 @@ export function TunerIcon(props: IconProps) {
     </Frame>
   );
 }
+
+/** Accueil : la maison. */
+export function HomeIcon(props: IconProps) {
+  const p = stroke(props.color);
+  return (
+    <Frame {...props}>
+      <Path d="M3.5 11 12 3.5 20.5 11" {...p} />
+      <Path d="M5.5 9.5V20h13V9.5" {...p} />
+      <Path d="M10 20v-5.5h4V20" {...p} />
+    </Frame>
+  );
+}
+
+/** Dimanche : le calendrier. */
+export function CalendarIcon(props: IconProps) {
+  const p = stroke(props.color);
+  return (
+    <Frame {...props}>
+      <Rect x={3.5} y={5} width={17} height={15.5} rx={2.5} {...p} />
+      <Line x1={3.5} y1={10} x2={20.5} y2={10} {...p} />
+      <Line x1={8} y1={3} x2={8} y2={6.5} {...p} />
+      <Line x1={16} y1={3} x2={16} y2={6.5} {...p} />
+    </Frame>
+  );
+}
+
+/** Comprendre : le « i » d'information, comme chez Apple. */
+export function InfoIcon(props: IconProps) {
+  const p = stroke(props.color);
+  return (
+    <Frame {...props}>
+      <Circle cx={12} cy={12} r={9} {...p} />
+      <Line x1={12} y1={11} x2={12} y2={16.5} {...p} />
+      <Circle cx={12} cy={7.7} r={1} fill={props.color} stroke="none" />
+    </Frame>
+  );
+}
+
+/** Tip : l'ampoule. */
+export function BulbIcon(props: IconProps) {
+  const p = stroke(props.color);
+  return (
+    <Frame {...props}>
+      <Path d="M9 18h6" {...p} />
+      <Path d="M10 21h4" {...p} />
+      <Path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z" {...p} />
+    </Frame>
+  );
+}
+
+/** Le livre du guide. */
+export function BookIcon(props: IconProps) {
+  const p = stroke(props.color);
+  return (
+    <Frame {...props}>
+      <Path d="M4 5.5C4 4.7 4.7 4 5.5 4H11v16H5.5C4.7 20 4 19.3 4 18.5z" {...p} />
+      <Path d="M20 5.5c0-.8-.7-1.5-1.5-1.5H13v16h5.5c.8 0 1.5-.7 1.5-1.5z" {...p} />
+    </Frame>
+  );
+}

@@ -14,7 +14,7 @@ import { noteName, prefersFlats } from '../../theory/notes';
  *
  * Deux entrées pour la même chose : un lien ouvert par l'app, et un lien collé à
  * la main. Le second n'est pas un pis-aller — sous Expo Go, le schéma
- * `graceguitar://` n'est pas enregistré, et coller est alors le seul chemin.
+ * `gccguitare://` n'est pas enregistré, et coller est alors le seul chemin.
  *
  * L'aperçu dit exactement ce qui sera ajouté : la date, le nom du culte, qui l'a
  * envoyé, et les chants avec leur tonalité. Rien n'est écrit avant « Ajouter à mes

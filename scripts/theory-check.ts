@@ -111,6 +111,28 @@ import { initialsOf } from '../src/services/account';
 import { voicingTab, generateVoicings } from '../src/theory/voicings';
 import { CAPO_SHAPES, capoOptions, DEFAULT_CAPO_SHAPES, probableChords, suggestCapo } from '../src/theory/worship';
 
+import { allTips, tipOfDay, tipsByGroup, tipsForLayer } from '../src/content/tips';
+import { guideSection, guideSections, helpLinks } from '../src/content/guide';
+import { tipBoard, tipPairs } from '../src/content/tipBoards';
+import { dictionaries } from '../src/i18n';
+import { LAYERS, TABS } from '../src/navigation';
+import { chainEntries, chordsOfSong, parseChordText, songFromChords, triadEntries } from '../src/songs/chordInput';
+import { songChords } from '../src/songs/model';
+import { addWidget, cleanWidgets, DEFAULT_WIDGETS, missingWidgets, moveWidget, removeWidget, visibleWidgets, WIDGET_IDS } from '../src/home/widgets';
+import { pcAt } from '../src/theory/notes';
+import {
+  allInversions,
+  bestChain,
+  coverageGaps,
+  movement,
+  STRING_SET_IDS,
+  TriadChord,
+  triadOf,
+  triadPitchClasses,
+  triadTones,
+  triadVoicings,
+} from '../src/theory/triads';
+
 let failures = 0;
 const check = (label: string, ok: boolean, detail = '') => {
   console.log(`${ok ? 'ok  ' : 'FAIL'} ${label}${detail ? ` (${detail})` : ''}`);
@@ -876,7 +898,7 @@ check('A song the library lost is dropped from the set', shareSet(shareable, [so
 check('A set with no name and no sender has neither field', !('n' in shareSet(past, [songB])) && !('n' in shareSet(past, [songB], '  ')));
 
 const link = shareLink(payload);
-check('The link is prefixed with the app scheme', link.startsWith('graceguitar://import?d='), link.slice(0, 30));
+check('The link is prefixed with the app scheme', link.startsWith('gccguitare://import?d='), link.slice(0, 30));
 check('The link holds nothing that needs escaping', /^[A-Za-z0-9\-_]+$/.test(link.slice(SHARE_PREFIX.length)));
 const readBack = readSharedLink(link);
 check('The link reads back', readBack !== null);
@@ -1200,7 +1222,7 @@ const exported = exportJson(
   exportedAt,
 );
 const carriedOver = JSON.parse(exported);
-check('An export says which app wrote it', carriedOver.app === 'GraceGuitar');
+check('An export says which app wrote it', carriedOver.app === 'GCCGuitare');
 check('An export carries its format number', carriedOver.format === EXPORT_FORMAT);
 check('An export is stamped with the moment it was made', carriedOver.exportedAt === '2026-09-24T10:00:00.000Z');
 check('An export carries the songs', carriedOver.songs.length === 1 && carriedOver.songs[0].title === 'Mon chant');
@@ -1208,7 +1230,7 @@ check('An export carries the sets with their songs', carriedOver.sets[0].songs[0
 check('An export carries the progress', carriedOver.progress['0:3'].correct === 1);
 check('An export carries the settings it was made with', carriedOver.practice.questionCount === DEFAULT_PRACTICE.questionCount);
 check('An export is written to be read by a person', exported.split('\n').length > 20);
-check('The export file is named after the day', exportName(exportedAt) === 'graceguitar-2026-09-24.json');
+check('The export file is named after the day', exportName(exportedAt) === 'gccguitare-2026-09-24.json');
 
 // ---------------------------------------------------------------------------
 // Le compte : ce qui voyage, ce qui se fusionne, et ce qui ne part jamais.
@@ -1377,6 +1399,220 @@ check('Two first names give two initials', initialsOf('Marie Claire', 'mc@exampl
 check('With no first name, the address gives them', initialsOf('', 'christelle@example.com') === 'CH');
 check('A dotted address gives them too', initialsOf('', 'marie.claire@example.com') === 'MC');
 check('A single-letter address still gives something', initialsOf('', 'x@example.com') === 'X');
+
+// ---------------------------------------------------------------------------
+// GCCGuitare : triades dans une zone, saisie des accords, widgets, contenus.
+// ---------------------------------------------------------------------------
+
+const asTriad = (root: number, quality: 'maj' | 'min'): TriadChord => ({ root, quality });
+const LA = asTriad(9, 'maj');
+const FA_DIESE_M = asTriad(6, 'min');
+const RE = asTriad(2, 'maj');
+const MI = asTriad(4, 'maj');
+const SOL = asTriad(7, 'maj');
+const SI_M = asTriad(11, 'min');
+const SI = asTriad(11, 'maj');
+const DO_DIESE_M = asTriad(1, 'min');
+const MI_M = asTriad(4, 'min');
+const DO = asTriad(0, 'maj');
+
+const framesOf = (chain: ReturnType<typeof bestChain>) => chain?.path.map((v) => v.frets.join(',')).join(' | ');
+
+// Les quatre chants d'essai de docs/TESTS.md, zone 5 à 10, cordes sol-si-mi.
+const gloire = bestChain([LA, FA_DIESE_M, RE, MI], 'sol-si-mi', 5, 10);
+check(
+  'Gloire à Dieu : La (6,5,5), Fa♯m (6,7,5), Ré (7,7,5), Mi (9,9,7)',
+  framesOf(gloire) === '6,5,5 | 6,7,5 | 7,7,5 | 9,9,7',
+  framesOf(gloire),
+);
+check('Gloire à Dieu : déplacement total 9', gloire?.total === 9, String(gloire?.total));
+check(
+  'Gloire à Dieu : 1er renversement, 2e, fondamentale, fondamentale',
+  gloire?.path.map((v) => v.inversion).join('') === '1200',
+);
+
+const fidele = bestChain([RE, SOL, LA, SI_M], 'sol-si-mi', 5, 10);
+check('Tu es fidèle : Ré (7,7,5) Sol (7,8,7) La (6,5,5) Si m (7,7,7)', framesOf(fidele) === '7,7,5 | 7,8,7 | 6,5,5 | 7,7,7', framesOf(fidele));
+check('Tu es fidèle : déplacement total 14', fidele?.total === 14, String(fidele?.total));
+
+const force = bestChain([MI, LA, SI, DO_DIESE_M], 'sol-si-mi', 5, 10);
+check('Ma force : Mi (9,9,7) La (9,10,9) Si (8,7,7) Do♯m (9,9,9)', framesOf(force) === '9,9,7 | 9,10,9 | 8,7,7 | 9,9,9', framesOf(force));
+check('Ma force : déplacement total 14', force?.total === 14, String(force?.total));
+
+const beni = bestChain([SOL, RE, MI_M, DO], 'sol-si-mi', 5, 10);
+check('Béni soit ton nom : Sol (7,8,7) Ré (7,7,5) Mi m (9,8,7) Do (9,8,8)', framesOf(beni) === '7,8,7 | 7,7,5 | 9,8,7 | 9,8,8', framesOf(beni));
+check('Béni soit ton nom : déplacement total 9', beni?.total === 9, String(beni?.total));
+
+// Chaque forme proposée contient bien tonique, tierce et quinte, dans la zone, en 2 cases au plus.
+const everyShapeIsSound = [
+  { chords: [LA, FA_DIESE_M, RE, MI], chain: gloire },
+  { chords: [RE, SOL, LA, SI_M], chain: fidele },
+  { chords: [MI, LA, SI, DO_DIESE_M], chain: force },
+  { chords: [SOL, RE, MI_M, DO], chain: beni },
+].every(({ chords, chain }) =>
+  chain !== null &&
+  chain.path.every((v, i) => {
+    const pcs = triadPitchClasses('sol-si-mi', v.frets);
+    const tones = triadTones(chords[i]);
+    return (
+      new Set(pcs).size === 3 &&
+      pcs.every((pc) => tones.includes(pc)) &&
+      Math.min(...v.frets) >= 5 &&
+      Math.max(...v.frets) <= 10 &&
+      Math.max(...v.frets) - Math.min(...v.frets) <= 2
+    );
+  }),
+);
+check('Toute forme proposée est une vraie triade, dans la zone, en 2 cases au plus', everyShapeIsSound);
+
+// Toute fenêtre de 6 cases (z de 1 à 9) contient une triade majeure ou mineure sur sol-si-mi et ré-sol-si.
+let windowsOk = true;
+for (const set of ['sol-si-mi', 're-sol-si'] as const) {
+  for (let root = 0; root < 12; root++) {
+    for (const quality of ['maj', 'min'] as const) {
+      for (let z = 1; z <= 9; z++) {
+        if (!triadVoicings({ root, quality }, set, z, z + 5).length) windowsOk = false;
+      }
+    }
+  }
+}
+check('12 racines, majeur et mineur, toute fenêtre de 6 cases : une triade sur sol-si-mi et ré-sol-si', windowsOk);
+check(
+  'Sur la-ré-sol, une fenêtre étroite manque parfois une triade (et l’app le dit)',
+  coverageGaps([LA, FA_DIESE_M, RE, MI], 'la-re-sol', 5, 7).length > 0 || coverageGaps([asTriad(1, 'maj'), asTriad(3, 'min')], 'la-re-sol', 1, 6).length > 0,
+);
+check('Une zone sans forme rend null au lieu de deviner', bestChain([asTriad(1, 'maj'), asTriad(3, 'min')], 'la-re-sol', 1, 3) === null || coverageGaps([asTriad(1, 'maj'), asTriad(3, 'min')], 'la-re-sol', 1, 3).length === 0);
+check('Pas d’accord, pas de déplacement', bestChain([], 'sol-si-mi', 5, 10)?.total === 0);
+check('Un seul accord ne bouge pas', bestChain([LA], 'sol-si-mi', 5, 10)?.total === 0);
+
+// Imposer une autre forme pour La recalcule les autres accords autour d'elle.
+const laForms = triadVoicings(LA, 'sol-si-mi', 5, 10);
+const otherLa = laForms.find((v) => v.frets.join(',') !== '6,5,5');
+const pinned = otherLa ? bestChain([LA, FA_DIESE_M, RE, MI], 'sol-si-mi', 5, 10, { 0: otherLa }) : null;
+check('La a deux formes dans la zone 5 à 10', laForms.length === 2, String(laForms.length));
+check('Choisir l’autre forme de La la garde en tête de l’enchaînement', !!pinned && pinned.path[0].frets.join(',') === otherLa?.frets.join(','));
+check('Les autres accords sont gardés dans la zone autour de la forme choisie', !!pinned && pinned.path.every((v) => Math.min(...v.frets) >= 5 && Math.max(...v.frets) <= 10));
+check('Aucun enchaînement imposé ne bouge moins que le meilleur', !!pinned && !!gloire && pinned.total >= gloire.total);
+
+// Toutes les inversions. Sur sol-si-mi et ré-sol-si, les trois renversements existent pour tous
+// les accords. Sur la-ré-sol, avec 2 cases d'écart au plus, la fondamentale manque souvent : la
+// liste ne montre que ce qui se joue.
+let inversionsOk = true;
+let laReSolHasForms = true;
+let laReSolIncomplete = false;
+for (let root = 0; root < 12; root++) {
+  for (const quality of ['maj', 'min'] as const) {
+    for (const set of ['sol-si-mi', 're-sol-si'] as const) {
+      if (new Set(allInversions({ root, quality }, set).map((v) => v.inversion)).size !== 3) inversionsOk = false;
+    }
+    const low = allInversions({ root, quality }, 'la-re-sol');
+    if (!low.length) laReSolHasForms = false;
+    if (new Set(low.map((v) => v.inversion)).size < 3) laReSolIncomplete = true;
+  }
+}
+check('Chaque accord a ses trois renversements sur sol-si-mi et ré-sol-si', inversionsOk);
+check('Sur la-ré-sol, chaque accord a au moins une forme, mais pas toujours les trois renversements', laReSolHasForms && laReSolIncomplete);
+const laInversions = allInversions(LA, 'sol-si-mi');
+check('La liste des inversions classe fondamentale, 1er, 2e', laInversions.map((v) => v.inversion).join('') === [...laInversions.map((v) => v.inversion)].sort().join(''));
+
+// Les phrases de mouvement.
+const move = movement({ frets: [7, 7, 5], inversion: 0 }, { frets: [7, 9, 5], inversion: 1 });
+check('Une seule corde qui bouge se dit', move.moved === 1 && move.deltas[1] === 2);
+check('Rien ne bouge : zéro corde', movement(laInversions[0], laInversions[0]).moved === 0);
+
+// Les accords enrichis se jouent avec la triade de leur base, les autres sont laissés de côté.
+check('Un accord de septième se joue avec sa triade', triadOf('dom7')?.quality === 'maj' && triadOf('dom7')?.simplified === true);
+check('Un mineur septième se joue avec sa triade mineure', triadOf('min7')?.quality === 'min');
+check('Un sus4 est ramené au majeur, et le dit', triadOf('sus4')?.simplified === true);
+check('Un diminué n’a pas de triade majeure ou mineure', triadOf('dim') === null && triadOf('aug') === null);
+check('Un majeur simple n’est pas « simplifié »', triadOf('maj')?.simplified === false);
+
+// Les tips sont vrais : ce que dit chaque schéma se vérifie sur le manche.
+const octaveOk = tipPairs('tip-01').every(([[s1, f1], [s2, f2]]) => pcAt(s1, f1) === pcAt(s2, f2) && s2 === s1 + 2);
+check('Tip octave : les paires donnent la même note, deux cordes plus haut', octaveOk);
+let octaveRule = true;
+for (let string = 0; string <= 3; string++) {
+  for (let fret = 0; fret <= 12; fret++) {
+    const arrivesOnBorE = string + 2 >= 4;
+    const to = fret + (arrivesOnBorE ? 3 : 2);
+    if (pcAt(string, fret) !== pcAt(string + 2, to)) octaveRule = false;
+  }
+}
+check('Tip octave, règle complète : +2 cases, +3 en arrivant sur si ou mi aigu', octaveRule);
+check('Tip corde voisine : les paires donnent la même note', tipPairs('tip-02').every(([[s1, f1], [s2, f2]]) => pcAt(s1, f1) === pcAt(s2, f2)));
+const [fourthPair] = tipPairs('tip-04');
+check(
+  'Tip quarte puis quinte : même case = quarte, deux cases de plus = quinte',
+  (pcAt(fourthPair[1][0], fourthPair[1][1]) - pcAt(fourthPair[0][0], fourthPair[0][1]) + 12) % 12 === 5 &&
+    (pcAt(fourthPair[2][0], fourthPair[2][1]) - pcAt(fourthPair[0][0], fourthPair[0][1]) + 12) % 12 === 7,
+);
+const gShapes = triadVoicings({ root: 7, quality: 'maj' }, 'sol-si-mi', 0, 15);
+check('Tip renversements : sol majeur, 1er case 4, 2e case 7, fondamentale case 12', 
+  gShapes.some((v) => v.inversion === 1 && v.frets.join() === '4,3,3') &&
+  gShapes.some((v) => v.inversion === 2 && v.frets.join() === '7,8,7') &&
+  gShapes.some((v) => v.inversion === 0 && v.frets.join() === '12,12,10'));
+check('Les schémas des tips ont tous des cases', ['tip-01', 'tip-02', 'tip-04', 'tip-09'].every((id) => tipBoard(id, 'anglo').length > 0));
+
+// Les contenus : 13 tips dans les deux langues, un guide qui tient ses promesses.
+const tipsFrAll = allTips('fr');
+const tipsEnAll = allTips('en');
+check('Treize tips en français', tipsFrAll.length === 13);
+check('Les mêmes treize tips en anglais', tipsEnAll.length === 13 && tipsEnAll.every((tip, i) => tip.id === tipsFrAll[i].id));
+check('Aucun tip sans titre, texte, exemple ni mémo', [...tipsFrAll, ...tipsEnAll].every((tip) => tip.title && tip.text && tip.example && tip.memo));
+check('Chaque couche a au moins un tip, sauf peut-être aucune', LAYERS.every((layer) => tipsForLayer('fr', layer).length > 0));
+check('Le tip du jour ne change pas dans la journée', tipOfDay('fr', '2026-10-08').id === tipOfDay('fr', '2026-10-08').id);
+check('Les tips sont groupés', tipsByGroup('fr').reduce((n, g) => n + g.tips.length, 0) === 13);
+for (const lang of ['fr', 'en'] as const) {
+  const sections = guideSections(lang);
+  check(`Guide ${lang} : chaque lien d’aide mène à une section qui existe`, helpLinks(lang).every((link) => !!guideSection(lang, link.target)));
+  check(`Guide ${lang} : chaque section a un titre et du texte`, sections.every((section) => section.title && section.body.length > 0));
+}
+check('Guide : mêmes sections dans les deux langues', guideSections('fr').map((s) => s.id).join() === guideSections('en').map((s) => s.id).join());
+check('Les liens d’aide sont les mêmes dans les deux langues', helpLinks('fr').map((l) => `${l.screen}>${l.target}`).join() === helpLinks('en').map((l) => `${l.screen}>${l.target}`).join());
+check('Chaque couche a ses quatre textes « Comprendre » en français et en anglais', LAYERS.every((layer) => {
+  const fr = dictionaries.fr.understand.layers[layer];
+  const en = dictionaries.en.understand.layers[layer];
+  return [fr.short, fr.onNeck, fr.byEar, fr.remember, en.short, en.onNeck, en.byEar, en.remember].every(Boolean);
+}));
+check('Le nom de l’app est GCCGuitare', dictionaries.fr.appName === 'GCCGuitare' && dictionaries.en.appName === 'GCCGuitare');
+check('Quatre onglets', TABS.length === 4 && TABS.join() === 'home,neck,sunday,me');
+check('Les onglets ont un nom dans les deux langues', TABS.every((id) => !!dictionaries.fr.tabs[id] && !!dictionaries.en.tabs[id]));
+
+// La saisie.
+const typed = parseChordText('La Fa♯m Ré Mi');
+check('« La Fa♯m Ré Mi » se lit en quatre accords', typed.chords.length === 4 && typed.unreadable.length === 0);
+check('… La, Fa♯m, Ré, Mi', typed.chords.map((c) => `${c.root}${c.chord}`).join() === '9maj,6min,2maj,4maj');
+check('« A F#m D E » donne les mêmes accords', parseChordText('A F#m D E').chords.map((c) => `${c.root}${c.chord}`).join() === typed.chords.map((c) => `${c.root}${c.chord}`).join());
+check('« Si m » avec une espace se lit comme « Sim »', parseChordText('Ré Sol La Si m').chords[3]?.root === 11 && parseChordText('Ré Sol La Si m').chords[3]?.chord === 'min');
+check('« Do♯ m » aussi', parseChordText('Mi La Si Do♯ m').chords[3]?.chord === 'min' && parseChordText('Mi La Si Do♯ m').chords[3]?.root === 1);
+check('Les virgules et les barres séparent', parseChordText('G, D | Em, C').chords.length === 4);
+check('Une grille ChordPro se lit par ses crochets', parseChordText('[G]Amazing [D]grace [Em]how [C]sweet').chords.length === 4);
+check('Ce qui n’est pas un accord est rendu à part', parseChordText('G truc D').unreadable.join() === 'truc' && parseChordText('G truc D').chords.length === 2);
+check('Une répétition « x2 » ne fait pas d’erreur', parseChordText('G D x2').unreadable.length === 0);
+check('Un accord de septième se lit', parseChordText('D7 Em7').chords.map((c) => c.chord).join() === 'dom7,min7');
+check('Un renversement garde sa tonique', parseChordText('D/F#').chords[0]?.root === 2);
+check('Un texte vide ne donne rien', parseChordText('   ').chords.length === 0);
+
+const entries = triadEntries(parseChordText('La La Fa♯m dim Ré').chords.concat(parseChordText('Sol°').chords));
+check('Le même accord deux fois de suite ne compte qu’une fois dans l’enchaînement', chainEntries(entries).length === 3, String(chainEntries(entries).length));
+check('Un accord sans triade reste dans la saisie mais pas dans l’enchaînement', entries.some((e) => e.triad === null) && chainEntries(entries).every((e) => e.triad !== null));
+
+const enteredSong = songFromChords('Gloire à Dieu', 9, parseChordText('La Fa♯m Ré Mi').chords);
+check('Un chant saisi garde ses accords en chiffrage', enteredSong.sections?.[0].bars.join(' ') === '1 6m 4 5', enteredSong.sections?.[0].bars.join(' '));
+check('… et les retrouve dans sa tonalité', chordsOfSong(enteredSong).map((c) => `${c.root}${c.chord}`).join() === '9maj,6min,2maj,4maj');
+check('Transposé dans une autre tonalité, il suit', songChords(enteredSong, 2).map((c) => c.root).join() === '2,11,7,9');
+
+// Les widgets de l'Accueil.
+check('Sans réglage, quatre widgets', cleanWidgets(undefined).join() === DEFAULT_WIDGETS.join() && DEFAULT_WIDGETS.length === 4);
+check('Sans set, pas de « Prochain dimanche »', !visibleWidgets(DEFAULT_WIDGETS, false).includes('sunday'));
+check('Avec un set, il apparaît', visibleWidgets(DEFAULT_WIDGETS, true).includes('sunday'));
+check('Une liste enregistrée perd ses inconnus et ses doublons', cleanWidgets(['tip', 'zzz', 'tip', 'session']).join() === 'tip,session');
+check('Une liste vide reste vide : c’est un choix', cleanWidgets([]).length === 0);
+check('Monter un widget le place avant', moveWidget(['session', 'progress'], 'progress', -1).join() === 'progress,session');
+check('Descendre le dernier ne bouge rien', moveWidget(['session', 'progress'], 'progress', 1).join() === 'session,progress');
+check('Retirer un widget', removeWidget(['session', 'progress'], 'session').join() === 'progress');
+check('Ajouter un widget deux fois ne le double pas', addWidget(addWidget(['session'], 'tip'), 'tip').join() === 'session,tip');
+check('On propose ce qui manque', missingWidgets(['session']).length === WIDGET_IDS.length - 1);
 
 function report() {
   if (failures) {

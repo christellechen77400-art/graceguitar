@@ -48,7 +48,7 @@ interface Ctx {
 const AuthContext = createContext<Ctx | null>(null);
 
 /** Le lien qui rouvre l'app pour changer de mot de passe. */
-export const RESET_LINK = 'graceguitar://reset-password';
+export const RESET_LINK = 'gccguitare://reset-password';
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(hasSupabase);
@@ -115,7 +115,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const client = supabase;
     if (!client) return;
     const handle = async (url: string) => {
-      if (!url.startsWith('graceguitar://')) return;
+      if (!url.startsWith('gccguitare://')) return;
       try {
         const code = Linking.parse(url).queryParams?.code;
         if (typeof code === 'string') {

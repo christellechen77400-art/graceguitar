@@ -1,0 +1,123 @@
+{
+  "locale": "fr",
+  "unlockRule": "Un niveau s’ouvre quand le précédent atteint 80 % de réussite sur ses 10 dernières réponses.",
+  "sessionRule": "Une séance = 12 minutes : un rappel (niveau déjà vu), un nouvel exercice, une application sur un chant si un set existe.",
+  "formats": [
+    {
+      "id": "nommer",
+      "label": "Nommer",
+      "desc": "Une note est montrée, on la nomme."
+    },
+    {
+      "id": "trouver",
+      "label": "Trouver",
+      "desc": "Une note est donnée, on la place sur le manche."
+    },
+    {
+      "id": "completer",
+      "label": "Compléter",
+      "desc": "Il manque la tierce ou la quinte."
+    },
+    {
+      "id": "oreille",
+      "label": "Oreille",
+      "desc": "Reconnaître majeur ou mineur, ou un intervalle."
+    },
+    {
+      "id": "metronome",
+      "label": "Avec métronome",
+      "desc": "Changer d’accord sur le temps, gammes à tempo croissant."
+    },
+    {
+      "id": "chant",
+      "label": "Sur un chant",
+      "desc": "Enchaîner les triades de la grille du dimanche dans la zone choisie."
+    }
+  ],
+  "levels": [
+    {
+      "level": 1,
+      "theme": "Repères du manche",
+      "layer": "notes",
+      "exercises": [
+        "Nommer les cordes à vide",
+        "Nommer les notes des cases 3, 5, 7 et 12 sur la corde de mi grave",
+        "Mi–fa et si–do"
+      ],
+      "tips": [
+        "tip-06",
+        "tip-08",
+        "tip-03"
+      ]
+    },
+    {
+      "level": 2,
+      "theme": "Toutes les notes",
+      "layer": "notes",
+      "exercises": [
+        "Trouver une note donnée sur chaque corde",
+        "Formes d’octave",
+        "Le miroir mi grave / mi aigu"
+      ],
+      "tips": [
+        "tip-01",
+        "tip-02",
+        "tip-05"
+      ]
+    },
+    {
+      "level": 3,
+      "theme": "Intervalles",
+      "layer": "intervalles",
+      "exercises": [
+        "Trouver la tierce et la quinte d’une note",
+        "Tierce majeure ou mineure à l’oreille"
+      ],
+      "tips": [
+        "tip-04",
+        "tip-07"
+      ]
+    },
+    {
+      "level": 4,
+      "theme": "Accords et capo",
+      "layer": "accords",
+      "exercises": [
+        "Nommer les notes d’un accord",
+        "Trouver la forme d’un accord",
+        "Capo et tonalité"
+      ],
+      "tips": [
+        "tip-11",
+        "tip-12",
+        "tip-13"
+      ]
+    },
+    {
+      "level": 5,
+      "theme": "Gammes et CAGED",
+      "layer": "gammes",
+      "exercises": [
+        "Pentatonique, position 1",
+        "Pentatonique majeure à partir de la mineure",
+        "Relier les 5 formes CAGED"
+      ],
+      "tips": [
+        "tip-10"
+      ]
+    },
+    {
+      "level": 6,
+      "theme": "Triades",
+      "layer": "triades",
+      "exercises": [
+        "Les 3 renversements",
+        "Enchaîner les triades d’une grille dans une zone",
+        "Autres jeux de cordes"
+      ],
+      "tips": [
+        "tip-09"
+      ]
+    }
+  ]
+}

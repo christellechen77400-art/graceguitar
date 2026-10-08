@@ -18,6 +18,7 @@ import { emptySong, setChords, Song, WorshipSet } from '../songs/model';
 import { songFromChordPro } from '../songs/import';
 import { nextSet, recentSongs } from '../songs/library';
 import { readSharedLink, SharedSet } from '../songs/share';
+import { FEATURE_CHURCH_SYNC } from '../config';
 import { SET_SOURCES } from '../songs/sources';
 import { useSongs } from '../songs/store';
 import { useSettings } from '../state/settings';
@@ -26,6 +27,9 @@ import { chordById, chordName, chordToneLabel } from '../theory/chords';
 import { mod12, noteName, pcAt, prefersFlats } from '../theory/notes';
 import { generateVoicings, voicingTab } from '../theory/voicings';
 import { capoOptions, COMMON_WORSHIP_KEYS, DIATONIC, PROGRESSIONS, suggestCapo } from '../theory/worship';
+import { HelpLink } from '../components/guideBits';
+import { useNav } from '../navigation';
+import { ChordEntrySheet } from './ChordEntrySheet';
 import { RunScreen } from './Run';
 import { GridEditor } from './songs/GridEditor';
 import { ImportSet } from './songs/ImportSet';
@@ -52,11 +56,13 @@ type Open =
   | { kind: 'paste'; song: Song }
   | { kind: 'share'; set: WorshipSet }
   | { kind: 'import' }
+  | { kind: 'enter' }
   | { kind: 'newSong' };
 
 export function WorshipScreen() {
-  const { settings, notation, t } = useSettings();
+  const { settings, notation, t, update } = useSettings();
   const songs = useSongs();
+  const nav = useNav();
   const s = useStyles(makeStyles);
   const ui = useTextStyles();
   const { c } = useTheme();
@@ -67,7 +73,7 @@ export function WorshipScreen() {
   const [allSongs, setAllSongs] = useState(false);
   const [run, setRun] = useState<Question[] | null>(null);
 
-  // Un lien `graceguitar://import?d=…` ouvre l'aperçu du set reçu. Sous Expo Go le
+  // Un lien `gccguitare://import?d=…` ouvre l'aperçu du set reçu. Sous Expo Go le
   // schéma n'est pas enregistré : le collage à la main reste le chemin normal, et
   // celui-ci fonctionne dès qu'un build de développement existe.
   useEffect(() => {
@@ -133,7 +139,7 @@ export function WorshipScreen() {
   };
 
   return (
-    <Screen tab="worship" title={t.tabs.worship}>
+    <Screen tab="sunday" title={t.tabs.sunday}>
       <SectionHeader>{t.worship.nextSet}</SectionHeader>
       {upcoming ? (
         <Card>
@@ -206,25 +212,30 @@ export function WorshipScreen() {
         />
       ))}
       <ChipRow>
+        <Chip label={t.triads.enter} onPress={() => setOpen({ kind: 'enter' })} />
         <Chip label={t.worship.quickAdd} onPress={() => setOpen({ kind: 'newSong' })} />
         <Chip label={t.worship.pasteChart} onPress={() => setOpen({ kind: 'paste', song: emptySong('', key) })} />
         <Chip label={t.worship.importSet} onPress={() => setOpen({ kind: 'import' })} />
       </ChipRow>
 
+      {FEATURE_CHURCH_SYNC ? (
+        <>
       <SectionHeader>{t.sets.sources}</SectionHeader>
-      <Text style={ui.hint}>{t.sets.sourceHint}</Text>
-      {/* Les sources d'équipe sont annoncées, pas proposées : une ligne grisée et
-          son sous-titre disent « prévu » sans promettre un badge coloré que rien
-          ne viendrait remplir. */}
-      {SET_SOURCES.filter((source) => source.id !== 'manual').map((source, i, all) => (
-        <ListRow
-          key={source.id}
-          title={t.sets.source[source.id]}
-          subtitle={source.available ? undefined : t.sets.comingSoon}
-          muted={!source.available}
-          last={i === all.length - 1}
-        />
-      ))}
+          <Text style={ui.hint}>{t.sets.sourceHint}</Text>
+          {/* Les sources d'équipe sont annoncées, pas proposées : une ligne grisée et
+              son sous-titre disent « prévu » sans promettre un badge coloré que rien
+              ne viendrait remplir. */}
+          {SET_SOURCES.filter((source) => source.id !== 'manual').map((source, i, all) => (
+            <ListRow
+              key={source.id}
+              title={t.sets.source[source.id]}
+              subtitle={source.available ? undefined : t.sets.comingSoon}
+              muted={!source.available}
+              last={i === all.length - 1}
+            />
+          ))}
+        </>
+      ) : null}
 
       <KeyPicker label={t.key} highlight={COMMON_WORSHIP_KEYS} />
       <Text style={[ui.hint, s.keyHint]}>{t.worship.commonKeyHint}</Text>
@@ -301,6 +312,12 @@ export function WorshipScreen() {
           if (open.setId) songs.updateInSet(open.setId, open.song.id, { capo: next });
           setOpen({ ...open, capo: next });
         }}
+        onTriads={() => {
+          if (open?.kind !== 'song') return;
+          update({ triadSongId: open.song.id });
+          setOpen(null);
+          nav.openLayer('triads');
+        }}
         onGrid={() => open?.kind === 'song' && setOpen({ kind: 'grid', song: open.song })}
         onPaste={() => open?.kind === 'song' && setOpen({ kind: 'paste', song: open.song })}
       />
@@ -359,6 +376,18 @@ export function WorshipScreen() {
         }}
       />
 
+      <ChordEntrySheet
+        key={open?.kind === 'enter' ? 'enter' : 'idle'}
+        visible={open?.kind === 'enter'}
+        song={null}
+        onClose={() => setOpen(null)}
+        onDone={(saved) => {
+          update({ triadSongId: saved.id });
+          setOpen(null);
+          nav.openLayer('triads');
+        }}
+      />
+
       <SongPicker
         key={open?.kind === 'newSong' ? 'new' : 'idle'}
         visible={open?.kind === 'newSong'}
@@ -368,6 +397,7 @@ export function WorshipScreen() {
           setOpen(null);
         }}
       />
+      <HelpLink screen="dimanche" tab="sunday" originLabel={t.tabs.sunday} />
     </Screen>
   );
 }

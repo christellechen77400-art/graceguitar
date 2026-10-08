@@ -1,7 +1,8 @@
+import { frGcc } from './fr.gcc';
+
 export const fr = {
-  appName: 'GraceGuitar',
+  appName: 'GCCGuitare',
   tagline: 'Le manche, pour la louange',
-  tabs: { today: 'Aujourd’hui', worship: 'Louange', chords: 'Accords', neck: 'Manche', practice: 'Exercices' },
   neck: {
     scales: 'Gammes',
     caged: 'CAGED',
@@ -434,11 +435,6 @@ export const fr = {
     appearance: 'Apparence',
     appearanceMode: { auto: 'Automatique', light: 'Clair', dark: 'Sombre' },
     notationHint: 'Les noms anglais restent en anglais.',
-    subscription: 'Abonnement',
-    plus: 'GraceGuitar Plus',
-    plusHint: 'Un abonnement avec un essai de sept jours. Rien n’est encore en vente.',
-    free: 'Gratuit',
-    restore: 'Restaurer les achats',
     account: {
       title: 'Mon compte',
       hint: 'Ton compte retrouve ta progression et tes chants sur un autre appareil. Sans compte, tout reste sur ce téléphone.',
@@ -507,12 +503,10 @@ export const fr = {
     resetConfirmHint: 'Les cases travaillées, les séances et les jours d’affilée seront perdus. C’est définitif.',
     resetYes: 'Réinitialiser',
     help: 'Aide et informations',
-    support: 'Contacter le support',
-    privacy: 'Politique de confidentialité',
-    terms: 'Conditions d’utilisation',
     version: 'Version',
   },
   tuner: 'Accordeur',
+  ...frGcc,
 };
 
 export type Dict = typeof fr;

@@ -28,7 +28,7 @@ export interface ExportInput {
 export function exportJson(input: ExportInput, now: Date): string {
   return JSON.stringify(
     {
-      app: 'GraceGuitar',
+      app: 'GCCGuitare',
       format: EXPORT_FORMAT,
       exportedAt: now.toISOString(),
       ...input,
@@ -40,5 +40,5 @@ export function exportJson(input: ExportInput, now: Date): string {
 
 /** Le nom du fichier : la date du jour, pour deux exports qui ne s'écrasent pas. */
 export function exportName(now: Date): string {
-  return `graceguitar-${now.toISOString().slice(0, 10)}.json`;
+  return `gccguitare-${now.toISOString().slice(0, 10)}.json`;
 }

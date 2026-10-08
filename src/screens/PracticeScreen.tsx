@@ -47,7 +47,7 @@ const MAX_QUESTIONS = QUESTION_COUNTS[QUESTION_COUNTS.length - 1];
  * n'ouvre pas une séance : ça ouvre ses réglages. On choisit ses cordes, sa zone,
  * sa longueur, et on part.
  */
-export function PracticeScreen() {
+export function PracticeScreen({ onBack }: { onBack?: () => void } = {}) {
   const s = useStyles(makeStyles);
   const { settings, t } = useSettings();
   const { c } = useTheme();
@@ -83,7 +83,7 @@ export function PracticeScreen() {
   }));
 
   return (
-    <Screen tab="practice" title={t.practice.title} titleRight={<StreakPill days={streak(settings.practiceDays, iso)} />}>
+    <Screen tab="home" action={onBack ? { label: t.home.backHome, onPress: onBack } : undefined} title={t.practice.title} titleRight={<StreakPill days={streak(settings.practiceDays, iso)} />}>
       <View style={s.card}>
         <SessionCard
           session={session}

@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { BulbIcon } from '../components/icons';
+import { HelpLink, TipSheet } from '../components/guideBits';
 import { useNotePlayer } from '../audio/useNotePlayer';
 import { Fretboard } from '../components/Fretboard';
-import { PersonIcon } from '../components/icons';
 import { SessionCard } from '../components/SessionCard';
 import { StreakPill } from '../components/StreakPill';
 import {
@@ -12,12 +13,16 @@ import {
   PrimaryButton,
   Screen,
   SecondaryButton,
+  SectionHeader,
   useTextStyles,
 } from '../components/ui';
 import { bestTime, challengeOfWeek } from '../home/challenge';
 import { dayPart, greetingName, seedOf, weekStrip } from '../home/day';
 import { notionOfDay } from '../home/notion';
-import { homeSections, HomeSection, isSundayMode, SUNDAY_QUESTIONS } from '../home/order';
+import { isSundayMode, SUNDAY_QUESTIONS } from '../home/order';
+import { addWidget, missingWidgets, moveWidget, removeWidget, visibleWidgets, WidgetId } from '../home/widgets';
+import { tipOfDay } from '../content/tips';
+import { LAYERS, useNav } from '../navigation';
 import { syncSundayReminder } from '../home/notifications';
 import { weekMinutes } from '../home/stats';
 import { dailySession } from '../practice/daily';
@@ -45,7 +50,7 @@ import { suggestCapo } from '../theory/worship';
 import { LessonsPanel } from './LessonsPanel';
 import { RunScreen } from './Run';
 import { SongStage } from './SongStage';
-import { SpaceSheet } from './SpaceSheet';
+import { PracticeScreen } from './PracticeScreen';
 import { Grid } from './songs/Grid';
 
 /**
@@ -58,15 +63,18 @@ import { Grid } from './songs/Grid';
  *
  * L'accordeur n'y est plus : il vit dans l'onglet Exercices et dans Mon espace.
  */
-export function TodayScreen() {
-  const { settings, notation, t } = useSettings();
+export function HomeScreen() {
+  const { settings, notation, t, update } = useSettings();
   const songs = useSongs();
   const s = useStyles(makeStyles);
   const ui = useTextStyles();
   const { c } = useTheme();
 
   const [run, setRun] = useState<Question[] | null>(null);
-  const [space, setSpace] = useState(false);
+  const [practice, setPractice] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [tipOpen, setTipOpen] = useState(false);
+  const nav = useNav();
   const [lesson, setLesson] = useState<LessonId | null>(null);
   const [stage, setStage] = useState<{ song: Song; set: WorshipSet; key: number; capo: number } | null>(null);
 
@@ -89,9 +97,11 @@ export function TodayScreen() {
   const days = streak(settings.practiceDays, iso);
   const week = weekStrip(settings.practiceDays, iso);
   const notion = notionOfDay(iso);
+  const tip = tipOfDay(settings.lang, iso);
   const challenge = challengeOfWeek(iso);
   const best = bestTime(settings.runs, challenge);
   const practised = cells.filter((cell) => cell.attempts > 0);
+  const shown = visibleWidgets(settings.homeWidgets, hasSet);
 
   // Ce qui a déjà été fait aujourd'hui : la séance est découpée en exercices, et
   // chacun se coche quand une séance du jour l'a porté.
@@ -105,9 +115,11 @@ export function TodayScreen() {
 
   if (run) return <RunScreen questions={run} onExit={() => setRun(null)} />;
 
+  if (practice) return <PracticeScreen onBack={() => setPractice(false)} />;
+
   if (lesson) {
     return (
-      <Screen tab="today" title={t.theory.title}>
+      <Screen tab="home" title={t.theory.title}>
         <LessonsPanel initial={lesson} onExit={() => setLesson(null)} />
       </Screen>
     );
@@ -128,17 +140,52 @@ export function TodayScreen() {
   const openSet = () =>
     upcoming ? songs.sets.find((x) => x.id === upcoming.id) ?? upcoming : songs.createSet();
 
-  const cards: Record<HomeSection, React.ReactNode> = {
-    todaySession: (
-      <SessionCard
-        key="session"
-        session={session}
-        done={doneToday}
-        sunday={sunday}
-        onStart={(questions) => questions.length && setRun(questions)}
-      />
+  const cards: Record<WidgetId, React.ReactNode> = {
+    session: (
+      <View key="session">
+        <SessionCard
+          session={session}
+          done={doneToday}
+          sunday={sunday}
+          onStart={(questions) => questions.length && setRun(questions)}
+        />
+        <View style={s.moreExercises}>
+          <SecondaryButton label={t.home.allExercises} onPress={() => setPractice(true)} />
+        </View>
+      </View>
     ),
-    sundaySet: (
+    shortcuts: (
+      <Card key="shortcuts">
+        <Text style={s.cardTitle}>{t.home.widgets.shortcuts}</Text>
+        <Text style={ui.hint}>{t.home.shortcutsHint}</Text>
+        <View style={s.shortcuts}>
+          {LAYERS.map((layer, index) => (
+            <Pressable
+              key={layer}
+              onPress={() => nav.openLayer(layer)}
+              accessibilityRole="button"
+              accessibilityLabel={`${index + 1}. ${t.layers[layer]}`}
+              style={s.shortcut}
+            >
+              <Text style={s.shortcutNumber}>{index + 1}</Text>
+              <Text style={s.shortcutLabel}>{t.layers[layer]}</Text>
+            </Pressable>
+          ))}
+        </View>
+        <HelpLink screen="accueil" tab="home" originLabel={t.guide.screens.home} />
+      </Card>
+    ),
+    tip: (
+      <Card key="tip" onPress={() => setTipOpen(true)} accessibilityLabel={tip.title}>
+        <View style={s.tipHead}>
+          <BulbIcon color={c.accent} size={22} />
+          <Text style={s.cardTitle}>{t.home.widgets.tip}</Text>
+        </View>
+        <Text style={s.tipTitle}>{tip.title}</Text>
+        <Text style={ui.hint}>{tip.memo}</Text>
+      </Card>
+    ),
+    sunday: (
       <SetCard
         key="set"
         set={upcoming}
@@ -152,13 +199,13 @@ export function TodayScreen() {
         }}
       />
     ),
-    notionOfDay: (
+    notion: (
       <NotionCard key="notion" notion={notion} onLesson={() => setLesson(notion.lesson)} />
     ),
     progress: (
       <ProgressCard key="progress" cells={cells} practised={practised.length} totals={totals} minutes={weekMinutes(settings.runs, iso)} />
     ),
-    weeklyChallenge: (
+    challenge: (
       <Card key="challenge">
         <Text style={s.cardTitle}>{t.today.challenge}</Text>
         <Text style={ui.hint}>
@@ -178,7 +225,7 @@ export function TodayScreen() {
   };
 
   return (
-    <Screen tab="today">
+    <Screen tab="home">
       <View style={s.head}>
         <Text style={s.date}>{formatDayTitle(iso, t)}</Text>
         <View style={s.headRight}>
@@ -186,12 +233,12 @@ export function TodayScreen() {
             <StreakPill days={days} />
           </View>
           <Pressable
-            onPress={() => setSpace(true)}
+            onPress={() => setEditing((on) => !on)}
             accessibilityRole="button"
-            accessibilityLabel={t.today.space}
-            style={s.space}
+            accessibilityState={{ selected: editing }}
+            style={s.editButton}
           >
-            <PersonIcon color={c.label} size={20} />
+            <Text style={s.editText}>{editing ? t.home.done : t.home.edit}</Text>
           </Pressable>
         </View>
       </View>
@@ -217,9 +264,74 @@ export function TodayScreen() {
         ))}
       </View>
 
-      {homeSections(day, hasSet).map((section) => cards[section])}
+      <View style={s.guitar} accessibilityRole="tablist" accessibilityLabel={t.home.guitar}>
+        <Chip
+          label={t.home.acoustic}
+          selected={settings.guitar === 'acoustic'}
+          onPress={() => update({ guitar: 'acoustic' })}
+        />
+        <Chip
+          label={t.home.electric}
+          selected={settings.guitar === 'electric'}
+          onPress={() => update({ guitar: 'electric' })}
+        />
+      </View>
 
-      <SpaceSheet visible={space} onClose={() => setSpace(false)} />
+      {shown.map((id, index) => (
+        <View key={id}>
+          {editing ? (
+            <View style={s.editBar}>
+              <Text style={s.editName}>{t.home.widgets[id]}</Text>
+              <Pressable
+                onPress={() => update({ homeWidgets: moveWidget(settings.homeWidgets, id, -1) })}
+                disabled={index === 0}
+                accessibilityRole="button"
+                accessibilityLabel={t.home.moveUp(t.home.widgets[id])}
+                style={[s.editIcon, index === 0 && s.editIconOff]}
+              >
+                <Text style={s.editGlyph}>↑</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => update({ homeWidgets: moveWidget(settings.homeWidgets, id, 1) })}
+                disabled={index === shown.length - 1}
+                accessibilityRole="button"
+                accessibilityLabel={t.home.moveDown(t.home.widgets[id])}
+                style={[s.editIcon, index === shown.length - 1 && s.editIconOff]}
+              >
+                <Text style={s.editGlyph}>↓</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => update({ homeWidgets: removeWidget(settings.homeWidgets, id) })}
+                accessibilityRole="button"
+                accessibilityLabel={t.home.remove(t.home.widgets[id])}
+                style={s.editIcon}
+              >
+                <Text style={s.editGlyph}>✕</Text>
+              </Pressable>
+            </View>
+          ) : null}
+          {cards[id]}
+        </View>
+      ))}
+
+      {editing ? (
+        <View>
+          {!shown.length ? <Text style={ui.hint}>{t.home.noWidgets}</Text> : null}
+          <SectionHeader>{t.home.addWidget}</SectionHeader>
+          <ChipRow>
+            {missingWidgets(settings.homeWidgets).map((id) => (
+              <Chip
+                key={id}
+                label={`+ ${t.home.widgets[id]}`}
+                onPress={() => update({ homeWidgets: addWidget(settings.homeWidgets, id) })}
+              />
+            ))}
+          </ChipRow>
+          <HelpLink screen="accueil.modifier" tab="home" originLabel={t.guide.screens.home} />
+        </View>
+      ) : null}
+
+      <TipSheet tip={tipOpen ? tip : null} onClose={() => setTipOpen(false)} />
     </Screen>
   );
 }
@@ -400,16 +512,39 @@ const makeStyles = ({ c, type, space, radius, size }: Theme) =>
     date: { ...type.subhead, color: c.secondary, flexShrink: 1 },
     headRight: { flexDirection: 'row', alignItems: 'center' },
     pillGap: { marginRight: space.sm },
-    space: {
-      width: size.touch,
-      height: size.touch,
-      borderRadius: size.touch / 2,
+    editButton: { minHeight: size.touch, paddingHorizontal: space.md, alignItems: 'center', justifyContent: 'center' },
+    editText: { ...type.body, color: c.accent },
+    guitar: { flexDirection: 'row', gap: space.sm, paddingHorizontal: space.lg, marginTop: space.lg },
+    moreExercises: { marginHorizontal: space.lg, marginTop: space.md },
+    shortcuts: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, paddingHorizontal: space.lg, marginTop: space.md },
+    shortcut: {
+      flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: c.card,
+      gap: space.sm,
+      minHeight: size.touch,
+      paddingHorizontal: space.md,
+      borderRadius: radius.chip,
       borderWidth: 1,
       borderColor: c.separator,
+      backgroundColor: c.fill,
     },
+    shortcutNumber: { ...type.caption, color: c.accent, fontWeight: '700' },
+    shortcutLabel: { ...type.subhead, color: c.label },
+    tipHead: { flexDirection: 'row', alignItems: 'center', gap: space.sm, paddingHorizontal: space.lg },
+    tipTitle: { ...type.headline, color: c.label, paddingHorizontal: space.lg, marginTop: space.sm },
+    editBar: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginHorizontal: space.lg,
+      marginTop: space.lg,
+      paddingHorizontal: space.md,
+      borderRadius: radius.chip,
+      backgroundColor: c.fill,
+    },
+    editName: { ...type.subhead, color: c.label, flex: 1 },
+    editIcon: { width: size.touch, height: size.touch, alignItems: 'center', justifyContent: 'center' },
+    editIconOff: { opacity: 0.3 },
+    editGlyph: { ...type.headline, color: c.label },
     greeting: { ...type.greeting, color: c.label, paddingHorizontal: space.lg, marginTop: space.sm },
     week: { flexDirection: 'row', paddingHorizontal: space.lg, marginTop: space.lg },
     // L'anneau est à l'extérieur du point : « aujourd'hui » est un état, pas une

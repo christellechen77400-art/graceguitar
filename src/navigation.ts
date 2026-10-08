@@ -1,5 +1,5 @@
 /**
- * Les cinq onglets, et les deux choses qu'un écran a besoin de demander à la
+ * Les quatre onglets, et les deux choses qu'un écran a besoin de demander à la
  * coquille : remonter en haut, et cacher la barre.
  *
  * C'est un registre et non un routeur : il n'y a ni historique ni URL, et un
@@ -21,10 +21,10 @@ export function useRetest(): () => void {
   return useContext(RetestContext);
 }
 
-export type TabId = 'today' | 'worship' | 'chords' | 'neck' | 'practice';
+export type TabId = 'home' | 'neck' | 'sunday' | 'me';
 
 /** L'ordre de la barre. L'index sert au déplacement de la pastille. */
-export const TABS: TabId[] = ['today', 'worship', 'chords', 'neck', 'practice'];
+export const TABS: TabId[] = ['home', 'neck', 'sunday', 'me'];
 
 /**
  * Où remonter quand on touche l'onglet déjà actif.
@@ -66,3 +66,34 @@ export function useHideTabBar(hidden: boolean): void {
     return () => hold?.(key, false);
   }, [hold, key, hidden]);
 }
+
+/** Les six couches du manche, dans l'ordre où on les apprend. */
+export const LAYERS = ['notes', 'intervals', 'chords', 'scales', 'caged', 'triads'] as const;
+export type LayerId = (typeof LAYERS)[number];
+
+/** D'où l'on vient quand on ouvre le guide : de quoi « Retour à … » ramène. */
+export interface GuideOrigin {
+  tab: TabId;
+  /** Le nom de l'écran d'origine, dans la langue courante. */
+  label: string;
+  layer?: LayerId;
+}
+
+/**
+ * Ce qu'un écran peut demander à la coquille : aller sur une couche du manche,
+ * ou ouvrir une section du guide. Il n'y a ni routeur ni URL, donc c'est elle qui
+ * garde l'état de la demande.
+ */
+export interface Nav {
+  openLayer: (layer: LayerId) => void;
+  openGuide: (section: string, origin: GuideOrigin) => void;
+  goTab: (tab: TabId) => void;
+}
+
+export const NavContext = createContext<Nav>({
+  openLayer: () => {},
+  openGuide: () => {},
+  goTab: () => {},
+});
+
+export const useNav = () => useContext(NavContext);

@@ -1,0 +1,25 @@
+# GCCGuitare : la PWA se construit avec Expo (web, sortie « single »).
+# Netlify : Build command et Publish directory sont lus d'ici.
+[build]
+  command = "npx expo export --platform web"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+# Une seule page : toute adresse renvoie à index.html.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Les fichiers générés portent leur empreinte dans leur nom : cache long.
+[[headers]]
+  for = "/_expo/static/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "no-cache"

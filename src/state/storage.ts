@@ -7,6 +7,11 @@
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+/**
+ * Le préfixe reste « graceguitar. » malgré le nouveau nom : c'est sous ces clés que
+ * les appareils déjà en service gardent leurs réglages et leurs chants. Le renommer
+ * les ferait repartir de zéro.
+ */
 export const PREFIX = 'graceguitar.';
 export const LEGACY_PREFIX = 'kinnor.';
 
