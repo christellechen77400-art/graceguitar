@@ -16,7 +16,7 @@
 import { Section, Song, WorshipSet } from './model';
 
 /** Le préfixe du lien. Le schéma est déclaré dans `app.json`. */
-export const SHARE_PREFIX = 'graceguitar://import?d=';
+export const SHARE_PREFIX = 'gccguitare://import?d=';
 
 const foldTitle = (title: string) => title.trim().toLowerCase();
 

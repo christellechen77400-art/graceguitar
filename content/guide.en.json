@@ -1,0 +1,121 @@
+{
+  "locale": "en",
+  "sections": [
+    {
+      "id": "onglets",
+      "title": "The 4 tabs",
+      "body": [
+        "Home: today’s session, your shortcuts, your progress. Pick up here.",
+        "Fretboard: the neck in six layers (Notes, Intervals, Chords, Scales, CAGED, Triads). Tap a layer to switch.",
+        "Sunday: your songs, their chords, and sets if you prepare them.",
+        "Me: your settings, this guide, the list of tips."
+      ]
+    },
+    {
+      "id": "icones",
+      "title": "The little icons",
+      "body": [
+        "ⓘ: “Understand”. Three levels: In short, On the neck, By ear, then “To remember”.",
+        "Light bulb: a tip, a memory trick to find a note or a shape.",
+        "Small “How it works” link: opens this guide at the right page, with a button to go back to where you were."
+      ]
+    },
+    {
+      "id": "sec-chant",
+      "title": "Preparing a Sunday song",
+      "body": [
+        "Go to Sunday and add a song, or enter its chords straight in Fretboard, Triads layer.",
+        "Pick the key, then the chords in the song’s order.",
+        "Tap “Suggest triads”: the app looks, inside your chosen zone, for the sequence where your hand moves the least."
+      ]
+    },
+    {
+      "id": "sec-saisie",
+      "title": "Entering a song’s chords",
+      "body": [
+        "Open Fretboard, Triads layer, then “Chords”.",
+        "Type the chords separated by spaces: A F#m D E, or La Fa♯m Ré Mi. You can also paste a ChordPro chart.",
+        "Remove a chord by tapping its cross; add some from the palette of the key’s chords.",
+        "The capo is noted on the song, but triads are computed on the chords exactly as you typed them."
+      ]
+    },
+    {
+      "id": "sec-eglise",
+      "title": "Linking the church app",
+      "body": [
+        "Linking to the church app is not active yet. The app works without it: enter your songs by hand."
+      ]
+    },
+    {
+      "id": "sec-zone",
+      "title": "Choosing my triad zone",
+      "body": [
+        "The zone is the frets where you want to keep your hand, for example 5 to 10.",
+        "With − and + you widen or narrow it. The narrower it is, the less your hand moves.",
+        "If a chord has no shape inside the zone, the app tells you: widen it.",
+        "“All inversions” shows a chord’s other shapes, in other zones too."
+      ]
+    },
+    {
+      "id": "sec-guitare",
+      "title": "Switching between acoustic and electric",
+      "body": [
+        "At the top of Home, switch between acoustic and electric. On electric, no capo is suggested."
+      ]
+    },
+    {
+      "id": "sec-accueil",
+      "title": "Rearranging Home",
+      "body": [
+        "Tap “Edit” on Home.",
+        "With the arrows, change the order of widgets; with the cross, remove one; “Add” brings one back.",
+        "The order is kept on your device. The “Next Sunday” widget only shows when there is a set."
+      ]
+    },
+    {
+      "id": "sec-metro",
+      "title": "Playing with the metronome",
+      "body": [
+        "The metronome comes later: it will go with the exercises and the triads."
+      ]
+    }
+  ],
+  "helpLinks": [
+    {
+      "screen": "accueil",
+      "widget": "raccourcis",
+      "label": "How it works",
+      "target": "onglets"
+    },
+    {
+      "screen": "manche",
+      "label": "How it works",
+      "target": "sec-chant"
+    },
+    {
+      "screen": "manche.triades",
+      "label": "How to choose my zone",
+      "target": "sec-zone"
+    },
+    {
+      "screen": "dimanche",
+      "label": "How to prepare a song",
+      "target": "sec-chant"
+    },
+    {
+      "screen": "dimanche.vide",
+      "label": "How to link the church app",
+      "target": "sec-eglise"
+    },
+    {
+      "screen": "accueil.modifier",
+      "label": "How it works",
+      "target": "sec-accueil"
+    },
+    {
+      "screen": "manche.triades.saisie",
+      "label": "How to enter my chords",
+      "target": "sec-saisie"
+    }
+  ]
+}

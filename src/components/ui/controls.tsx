@@ -13,12 +13,14 @@ export function Chip({
   onPress,
   disabled,
   style,
+  accessibilityLabel,
 }: {
   label: string;
   selected?: boolean;
   onPress: () => void;
   disabled?: boolean;
   style?: ViewStyle;
+  accessibilityLabel?: string;
 }) {
   const s = useStyles(makeStyles);
   return (
@@ -32,6 +34,7 @@ export function Chip({
       }}
       disabled={disabled}
       accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
       accessibilityState={{ selected, disabled }}
       style={[s.chip, selected && s.chipSelected, disabled && s.disabled, style]}
     >

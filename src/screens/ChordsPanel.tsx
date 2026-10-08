@@ -8,7 +8,6 @@ import {
   ChipRow,
   DisplayPicker,
   KeyPicker,
-  Screen,
   SecondaryButton,
   Sheet,
   SectionHeader,
@@ -23,7 +22,7 @@ import { FRET_COUNT, noteName, pcAt, prefersFlats, STRING_COUNT, voicingToMidi }
 import { generateVoicings, voicingTab } from '../theory/voicings';
 import { AnalyzerPanel } from './AnalyzerPanel';
 
-export function ChordsScreen() {
+export function ChordsPanel() {
   const { settings, notation, t } = useSettings();
   const ui = useTextStyles();
   const s = useStyles(makeStyles);
@@ -85,7 +84,7 @@ export function ChordsScreen() {
   const muted = voicing ? voicing.frets.map((f, s) => (f === null ? s : -1)).filter((s) => s >= 0) : [];
 
   return (
-    <Screen tab="chords" title={t.tabs.chords}>
+    <View>
       <KeyPicker label={t.root} />
       <SectionHeader>{t.chordType}</SectionHeader>
       <ChipRow>
@@ -179,7 +178,7 @@ export function ChordsScreen() {
       <Sheet visible={naming} title={t.nameChord} onClose={() => setNaming(false)} closeLabel={t.close}>
         <AnalyzerPanel />
       </Sheet>
-    </Screen>
+    </View>
   );
 }
 

@@ -41,6 +41,7 @@ export function SongSheet({
   onCapo,
   onGrid,
   onPaste,
+  onTriads,
 }: {
   song: Song | null;
   /** La tonalité du jour : celle du set, ou celle du chant. */
@@ -51,6 +52,8 @@ export function SongSheet({
   onCapo: (capo: number) => void;
   onGrid: () => void;
   onPaste: () => void;
+  /** Ouvre les triades de ce chant dans l'onglet Manche. */
+  onTriads: () => void;
 }) {
   const { t, notation, settings } = useSettings();
   const s = useStyles(makeStyles);
@@ -135,6 +138,11 @@ export function SongSheet({
         </>
       )}
 
+      {song.sections?.length ? (
+        <View style={s.actions}>
+          <PrimaryButton label={t.triads.seeTriads} onPress={onTriads} />
+        </View>
+      ) : null}
       <View style={s.actions}>
         <SecondaryButton label={t.worship.pasteChart} onPress={onPaste} />
       </View>

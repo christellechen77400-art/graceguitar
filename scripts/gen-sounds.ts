@@ -370,7 +370,7 @@ function main() {
   let worstPitchCal = 0;
   let worstDecay = 0;
 
-  const only = process.argv.find((a) => /^\d+$/.test(a));
+  const only = process.argv.find((a: string) => /^\d+$/.test(a));
   const trace = process.env.DEBUG_SOUNDS === '1';
   const from = only ? Number(only) : MIDI_LOW;
   const to = only ? Number(only) : MIDI_HIGH;

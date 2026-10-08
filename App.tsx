@@ -6,16 +6,15 @@ import {
 } from '@expo-google-fonts/newsreader';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Keyboard, StyleSheet, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { FloatingTabBar } from './src/components/FloatingTabBar';
-import { RetestContext, TabBarContext, TabId } from './src/navigation';
-import { ChordsScreen } from './src/screens/ChordsScreen';
-import { NeckScreen } from './src/screens/NeckScreen';
+import { GuideOrigin, LayerId, Nav, NavContext, RetestContext, TabBarContext, TabId } from './src/navigation';
+import { HomeScreen } from './src/screens/HomeScreen';
+import { MancheScreen } from './src/screens/MancheScreen';
+import { MeScreen } from './src/screens/MeScreen';
 import { OnboardingScreen } from './src/screens/OnboardingScreen';
-import { PracticeScreen } from './src/screens/PracticeScreen';
-import { TodayScreen } from './src/screens/TodayScreen';
 import { WorshipScreen } from './src/screens/WorshipScreen';
 import { SettingsProvider, useSettings } from './src/state/settings';
 import { AuthProvider } from './src/services/auth';
@@ -63,7 +62,10 @@ function Shell() {
   const { settings, ready } = useSettings();
   const { dark } = useTheme();
   const s = useStyles(makeStyles);
-  const [tab, setTab] = useState<TabId>('today');
+  const [tab, setTab] = useState<TabId>('home');
+  const [layer, setLayer] = useState<LayerId>('notes');
+  // Le guide ouvert dans Moi, et l'écran d'où l'on y est venu (pour « Retour à … »).
+  const [guide, setGuide] = useState<{ section: string | null; origin: GuideOrigin | null } | null>(null);
   const [welcomed, setWelcomed] = useState(false);
   // Le test du niveau, rouvert depuis « Mon espace ».
   const [retest, setRetest] = useState(false);
@@ -78,6 +80,37 @@ function Shell() {
     if (hidden) holds.current.add(key);
     else holds.current.delete(key);
     setHeld(holds.current.size > 0);
+  }, []);
+
+  const nav = useMemo<Nav>(
+    () => ({
+      openLayer: (next) => {
+        setLayer(next);
+        setTab('neck');
+      },
+      openGuide: (section, origin) => {
+        setGuide({ section, origin });
+        setTab('me');
+      },
+      goTab: setTab,
+    }),
+    [],
+  );
+
+  const backToOrigin = useCallback(() => {
+    setGuide((current) => {
+      if (current?.origin) {
+        if (current.origin.layer) setLayer(current.origin.layer);
+        setTab(current.origin.tab);
+      }
+      return null;
+    });
+  }, []);
+
+  // Quitter Moi ferme le guide : y revenir par la barre ouvre Moi, pas la page lue.
+  const changeTab = useCallback((next: TabId) => {
+    setTab(next);
+    if (next !== 'me') setGuide(null);
   }, []);
 
   useEffect(() => {
@@ -109,17 +142,18 @@ function Shell() {
       {/* Le contexte enveloppe les écrans, pas seulement la barre : c'est un
           écran — une séance en plein écran — qui demande à la cacher. */}
       <RetestContext.Provider value={() => setRetest(true)}>
+      <NavContext.Provider value={nav}>
       <TabBarContext.Provider value={hold}>
         <View style={s.body}>
-          {tab === 'today' && <TodayScreen />}
-          {tab === 'worship' && <WorshipScreen />}
-          {tab === 'chords' && <ChordsScreen />}
-          {tab === 'neck' && <NeckScreen />}
-          {tab === 'practice' && <PracticeScreen />}
+          {tab === 'home' && <HomeScreen />}
+          {tab === 'neck' && <MancheScreen layer={layer} onLayer={setLayer} />}
+          {tab === 'sunday' && <WorshipScreen />}
+          {tab === 'me' && <MeScreen guide={guide} onGuide={setGuide} onBackToOrigin={backToOrigin} />}
         </View>
 
-        {!keyboard && !held && <FloatingTabBar tab={tab} onChange={setTab} />}
+        {!keyboard && !held && <FloatingTabBar tab={tab} onChange={changeTab} />}
       </TabBarContext.Provider>
+      </NavContext.Provider>
       </RetestContext.Provider>
     </View>
   );

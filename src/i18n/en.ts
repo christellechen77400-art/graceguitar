@@ -1,9 +1,9 @@
+import { enGcc } from './en.gcc';
 import type { Dict } from './fr';
 
 export const en: Dict = {
-  appName: 'GraceGuitar',
+  appName: 'GCCGuitare',
   tagline: 'The fretboard, for worship',
-  tabs: { today: 'Today', worship: 'Worship', chords: 'Chords', neck: 'Fretboard', practice: 'Practice' },
   neck: {
     scales: 'Scales',
     caged: 'CAGED',
@@ -429,11 +429,6 @@ export const en: Dict = {
     appearance: 'Appearance',
     appearanceMode: { auto: 'Automatic', light: 'Light', dark: 'Dark' },
     notationHint: 'English names stay in English.',
-    subscription: 'Subscription',
-    plus: 'GraceGuitar Plus',
-    plusHint: 'A subscription with a seven-day trial. Nothing is for sale yet.',
-    free: 'Free',
-    restore: 'Restore purchases',
     account: {
       title: 'My account',
       hint: 'Your account brings your progress and songs to another device. Without one, everything stays on this phone.',
@@ -502,10 +497,8 @@ export const en: Dict = {
     resetConfirmHint: 'Practised cells, sessions and days in a row will be lost. It cannot be undone.',
     resetYes: 'Reset',
     help: 'Help and information',
-    support: 'Contact support',
-    privacy: 'Privacy policy',
-    terms: 'Terms of use',
     version: 'Version',
   },
   tuner: 'Tuner',
+  ...enGcc,
 };

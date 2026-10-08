@@ -1,4 +1,4 @@
--- GraceGuitar — le schéma du compte.
+-- GCCGuitare — le schéma du compte.
 --
 -- À exécuter en entier dans l'éditeur SQL du projet Supabase, une fois. Le script
 -- est refaisable : tout est en `if not exists` ou remplacé, donc le relancer ne

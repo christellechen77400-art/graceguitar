@@ -3,39 +3,81 @@
   "sections": [
     {
       "id": "onglets",
-      "title": "Les 4 onglets"
+      "title": "Les 4 onglets",
+      "body": [
+        "Accueil : ta séance du jour, tes raccourcis, ta progression. C’est là que tu reprends.",
+        "Manche : le manche en six couches (Notes, Intervalles, Accords, Gammes, CAGED, Triades). Touche une couche pour la changer.",
+        "Dimanche : tes chants, leurs accords, et les sets si tu en prépares.",
+        "Moi : tes réglages, le guide, la liste des tips."
+      ]
     },
     {
       "id": "icones",
-      "title": "Les petites icônes"
+      "title": "Les petites icônes",
+      "body": [
+        "ⓘ : « Comprendre ». Trois niveaux : En bref, Sur le manche, À l’oreille, puis « Pour retenir ».",
+        "Ampoule : un tip, une astuce de mémoire pour retrouver une note ou une forme.",
+        "Petit lien « Comment ça marche » : ouvre ce guide à la bonne page, avec un bouton pour revenir où tu étais."
+      ]
     },
     {
       "id": "sec-chant",
-      "title": "Préparer un chant du dimanche"
+      "title": "Préparer un chant du dimanche",
+      "body": [
+        "Va dans Dimanche et ajoute un chant, ou saisis directement ses accords dans Manche, couche Triades.",
+        "Choisis la tonalité, puis les accords dans l’ordre du chant.",
+        "Touche « Proposer les triades » : l’app cherche, dans la zone choisie, l’enchaînement où ta main bouge le moins."
+      ]
     },
     {
       "id": "sec-saisie",
-      "title": "Saisir les accords d’un chant"
+      "title": "Saisir les accords d’un chant",
+      "body": [
+        "Ouvre Manche, couche Triades, puis « Accords ».",
+        "Tape les accords séparés par des espaces : La Fa♯m Ré Mi, ou A F#m D E. Tu peux aussi coller une grille ChordPro.",
+        "Retire un accord en touchant sa croix ; ajoute-en avec la palette des accords de la tonalité.",
+        "Le capo est noté sur le chant, mais les triades sont calculées sur les accords tels que tu les as saisis."
+      ]
     },
     {
       "id": "sec-eglise",
-      "title": "Relier l’app d’église"
+      "title": "Relier l’app d’église",
+      "body": [
+        "La liaison avec l’app d’église n’est pas encore active. L’app fonctionne sans elle : saisis tes chants à la main."
+      ]
     },
     {
       "id": "sec-zone",
-      "title": "Choisir ma zone de triades"
+      "title": "Choisir ma zone de triades",
+      "body": [
+        "La zone, ce sont les cases où tu veux garder ta main, par exemple de 5 à 10.",
+        "Avec − et +, tu l’élargis ou la resserres. Plus elle est étroite, moins ta main bouge.",
+        "Si un accord n’a aucune forme dans la zone, l’app te le dit : élargis-la.",
+        "« Toutes les inversions » montre les autres formes d’un accord, dans les autres zones aussi."
+      ]
     },
     {
       "id": "sec-guitare",
-      "title": "Passer d’acoustique à électrique"
+      "title": "Passer d’acoustique à électrique",
+      "body": [
+        "En haut de l’Accueil, bascule entre acoustique et électrique. En électrique, on ne propose pas de capo."
+      ]
     },
     {
       "id": "sec-accueil",
-      "title": "Réorganiser l’Accueil"
+      "title": "Réorganiser l’Accueil",
+      "body": [
+        "Touche « Modifier » sur l’Accueil.",
+        "Avec les flèches, change l’ordre des widgets ; avec la croix, retire-en un ; « Ajouter » en remet.",
+        "L’ordre est gardé sur ton appareil. Le widget « Prochain dimanche » n’apparaît que s’il y a un set."
+      ]
     },
     {
       "id": "sec-metro",
-      "title": "Jouer avec le métronome"
+      "title": "Jouer avec le métronome",
+      "body": [
+        "Le métronome arrive plus tard : il accompagnera les exercices et les triades."
+      ]
     }
   ],
   "helpLinks": [

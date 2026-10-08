@@ -37,6 +37,8 @@ export interface Song {
   tempo?: number;
   /** Consignes, dynamique : « doux au deuxième couplet ». */
   notes?: string;
+  /** Le capo noté à la saisie des accords. Les triades ne le prennent pas en compte. */
+  capo?: number;
   referenceUrl?: string;
   source: SongSource;
   /** ISO, pour que la synchronisation sache quoi gagner. */
